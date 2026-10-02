@@ -68,13 +68,18 @@ export default function UsuariosPage() {
     try {
       const res = await fetch("/api/users");
       const data = await res.json();
-      if (data.users) {
+      if (!res.ok) {
+        console.error("API /api/users error:", data.error);
+        setError(`Erro ao carregar usuários: ${data.error || 'Erro desconhecido'}. Verifique se SUPABASE_SERVICE_ROLE_KEY está configurada na Vercel.`);
+      } else if (data.users) {
         setUsers(data.users.map((u: AuthUser) => ({
           ...u,
           role: u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : (u.role || 'user'),
         })));
       }
-    } catch {
+    } catch (err) {
+      console.error("Fetch /api/users failed:", err);
+      setError("Erro de conexão ao buscar usuários. Verificando usuário atual...");
       // Fallback: show only current user
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
@@ -111,24 +116,25 @@ export default function UsuariosPage() {
     setError(null);
     setSuccess(null);
 
-    const supabase = createClient();
-    const { data, error } = await supabase.rpc("create_auth_user", {
-      user_email: newEmail,
-      user_password: newPassword,
-    });
+    try {
+      const res = await fetch("/api/users/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmail, password: newPassword }),
+      });
+      const data = await res.json();
 
-    if (error) {
-      if (error.message.includes("duplicate key") || error.message.includes("unique constraint") || error.message.includes("users_email_partial_key")) {
-        setError(`O email ${newEmail} já está cadastrado no sistema.`);
+      if (!res.ok) {
+        setError(data.error || "Erro ao criar usuário.");
       } else {
-        setError(error.message);
+        setSuccess(`Usuário ${newEmail} criado com sucesso!`);
+        setNewEmail("");
+        setNewPassword("");
+        setShowCreateModal(false);
+        await fetchUsers();
       }
-    } else {
-      setSuccess(`Usuário ${newEmail} criado com sucesso!`);
-      setNewEmail("");
-      setNewPassword("");
-      setShowCreateModal(false);
-      await fetchUsers();
+    } catch {
+      setError("Erro de conexão ao criar usuário.");
     }
     setSaving(false);
   }
