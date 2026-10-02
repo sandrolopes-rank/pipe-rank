@@ -6,10 +6,7 @@ export async function GET() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[API /api/users] Missing env vars:", {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!serviceRoleKey,
-    });
+    console.error("[API /api/users] Missing env vars");
     return NextResponse.json(
       { error: "Missing Supabase environment variables" },
       { status: 500 }
@@ -24,14 +21,14 @@ export async function GET() {
   });
 
   try {
-    // Use RPC function to list users (bypasses admin API issues)
+    // Use ONLY the RPC function - admin.listUsers is broken and returns "Database error finding users"
     console.log("[API /api/users] Calling RPC list_all_auth_users...");
     const { data: rpcData, error: rpcError } = await supabase.rpc("list_all_auth_users");
 
     if (rpcError) {
       console.error("[API /api/users] RPC error:", rpcError);
       return NextResponse.json(
-        { error: `RPC Error: ${rpcError.message}` },
+        { error: `Erro na função RPC list_all_auth_users: ${rpcError.message}. Verifique se a função foi criada corretamente no Supabase SQL Editor.` },
         { status: 500 }
       );
     }
