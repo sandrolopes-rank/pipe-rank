@@ -110,7 +110,11 @@ export default function UsuariosPage() {
     });
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes("duplicate key") || error.message.includes("unique constraint") || error.message.includes("users_email_partial_key")) {
+        setError(`O email ${newEmail} já está cadastrado no sistema.`);
+      } else {
+        setError(error.message);
+      }
     } else {
       setSuccess(`Usuário ${newEmail} criado com sucesso!`);
       setNewEmail("");
@@ -166,7 +170,7 @@ export default function UsuariosPage() {
         </div>
         <button
           onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 cursor-pointer"
           style={{ background: "linear-gradient(135deg, #7c3aed, #3b82f6)" }}
         >
           <Plus size={14} />
@@ -179,14 +183,14 @@ export default function UsuariosPage() {
         <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
           <AlertTriangle size={14} />
           {error}
-          <button onClick={() => setError(null)} className="ml-auto"><X size={12} /></button>
+          <button onClick={() => setError(null)} className="ml-auto cursor-pointer"><X size={12} /></button>
         </div>
       )}
       {success && (
         <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399" }}>
           <CheckCircle size={14} />
           {success}
-          <button onClick={() => setSuccess(null)} className="ml-auto"><X size={12} /></button>
+          <button onClick={() => setSuccess(null)} className="ml-auto cursor-pointer"><X size={12} /></button>
         </div>
       )}
 
@@ -299,7 +303,7 @@ export default function UsuariosPage() {
                         {!isCurrentUser && (
                           <button
                             onClick={() => handleSetRole(user.id, isAdminRole ? 'user' : 'admin')}
-                            className="text-[9px] px-2 py-0.5 rounded transition-colors"
+                            className="text-[9px] px-2 py-0.5 rounded transition-colors cursor-pointer"
                             style={{
                               background: isAdminRole ? "rgba(251,191,36,0.1)" : "rgba(124,58,237,0.1)",
                               color: isAdminRole ? "#fbbf24" : "#a78bfa",
@@ -318,13 +322,13 @@ export default function UsuariosPage() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="text-[10px] px-2 py-1 rounded text-red-400 hover:bg-red-500/10 transition-colors"
+                              className="text-[10px] px-2 py-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                             >
                               Confirmar
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(null)}
-                              className="text-[10px] px-2 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors"
+                              className="text-[10px] px-2 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
                             >
                               Cancelar
                             </button>
@@ -332,7 +336,7 @@ export default function UsuariosPage() {
                         ) : (
                           <button
                             onClick={() => setDeleteConfirm(user.id)}
-                            className="text-[#525252] hover:text-red-400 transition-colors"
+                            className="text-[#525252] hover:text-red-400 transition-colors cursor-pointer"
                             title="Excluir usuário"
                           >
                             <Trash2 size={14} />
@@ -360,7 +364,7 @@ export default function UsuariosPage() {
                 <Key size={16} style={{ color: "#a78bfa" }} />
                 <h2 className="text-sm font-bold text-white">Criar Novo Usuário</h2>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="text-[#525252] hover:text-white transition-colors">
+              <button onClick={() => setShowCreateModal(false)} className="text-[#525252] hover:text-white transition-colors cursor-pointer">
                 <X size={18} />
               </button>
             </div>
@@ -399,14 +403,14 @@ export default function UsuariosPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-[#a3a3a3] hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-lg text-sm text-[#a3a3a3] hover:text-white transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
                   style={{ background: "linear-gradient(135deg, #7c3aed, #3b82f6)" }}
                 >
                   <Save size={14} />
