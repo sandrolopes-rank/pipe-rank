@@ -1,24 +1,40 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
+    console.error("[API /api/users] Missing env vars:", {
+      hasUrl: !!supabaseUrl,
+      hasKey: !!serviceRoleKey
+    });
     return NextResponse.json(
       { error: "Missing Supabase environment variables" },
       { status: 500 }
     );
   }
 
-  const supabase = createSupabaseAdmin(supabaseUrl, serviceRoleKey);
+  // Create admin client with explicit options to ensure compatibility
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 
   try {
-    const { data, error } = await supabase.auth.admin.listUsers();
+    // Try to list users with pagination to avoid timeout on large lists
+    const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 100 });
 
     if (error) {
+      console.error("[API /api/users] Supabase error:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    if (!data || !data.users) {
+      return NextResponse.json({ users: [] });
     }
 
     const users = data.users.map((user) => ({
@@ -32,6 +48,7 @@ export async function GET() {
 
     return NextResponse.json({ users });
   } catch (err) {
+    console.error("[API /api/users] Exception:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Unknown error" },
       { status: 500 }
