@@ -76,8 +76,8 @@ export default function UsuariosPage() {
         id: user.id,
         email: user.email || '',
         created_at: user.created_at,
-        last_sign_in_at: user.last_sign_in_at,
-        email_confirmed_at: user.email_confirmed_at,
+        last_sign_in_at: user.last_sign_in_at ?? null,
+        email_confirmed_at: user.email_confirmed_at ?? null,
         role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user'
       }]);
     }
