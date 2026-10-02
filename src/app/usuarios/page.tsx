@@ -65,21 +65,29 @@ export default function UsuariosPage() {
   }, []);
 
   async function fetchUsers() {
-    const supabase = createClient();
-
-    // Usar apenas auth.getUser() para evitar erros 42804 das funções RPC
-    // As funções no banco têm tipo mismatch (varchar 255 vs text) que causa erro 400
-    // O fallback mostra pelo menos o usuário atual com role baseado no email
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      setUsers([{
-        id: user.id,
-        email: user.email || '',
-        created_at: user.created_at,
-        last_sign_in_at: user.last_sign_in_at ?? null,
-        email_confirmed_at: user.email_confirmed_at ?? null,
-        role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user'
-      }]);
+    try {
+      const res = await fetch("/api/users");
+      const data = await res.json();
+      if (data.users) {
+        setUsers(data.users.map((u: AuthUser) => ({
+          ...u,
+          role: u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : (u.role || 'user'),
+        })));
+      }
+    } catch {
+      // Fallback: show only current user
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUsers([{
+          id: user.id,
+          email: user.email || '',
+          created_at: user.created_at,
+          last_sign_in_at: user.last_sign_in_at ?? null,
+          email_confirmed_at: user.email_confirmed_at ?? null,
+          role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user'
+        }]);
+      }
     }
   }
 
