@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { Briefcase, Mail, Lock, Loader2, Chrome, KeyRound } from "lucide-react";
+import { Briefcase, Mail, Lock, Loader2, Globe, KeyRound } from "lucide-react";
 
 const ALLOWED_DOMAIN = "rankmyapp.com.br";
 
@@ -311,7 +311,7 @@ export default function LoginPage() {
             {googleLoading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Chrome size={16} />
+              <Globe size={16} />
             )}
             Entrar com Google
           </button>
