@@ -24,49 +24,43 @@ export async function GET() {
   });
 
   try {
-    // Use direct SQL query on auth.users table instead of admin.listUsers()
-    // This bypasses the GoTrue admin API which is throwing "Database error finding users"
-    const { data, error } = await supabase
-      .from("auth.users")
-      .select("id, email, created_at, last_sign_in_at, email_confirmed_at, raw_user_meta_data")
-      .order("created_at", { ascending: false });
+    // Try RPC function first (bypasses admin API issues)
+    const { data: rpcData, error: rpcError } = await supabase.rpc("list_all_auth_users");
 
-    if (error) {
-      console.error("[API /api/users] Query error:", error);
-      // Fallback: try admin.listUsers without pagination params
-      const { data: adminData, error: adminError } = await supabase.auth.admin.listUsers();
-      if (adminError) {
-        console.error("[API /api/users] Admin fallback also failed:", adminError);
-        return NextResponse.json({ error: adminError.message }, { status: 500 });
-      }
-      if (adminData?.users) {
-        const users = adminData.users.map((user) => ({
-          id: user.id,
-          email: user.email || "",
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at ?? null,
-          email_confirmed_at: user.email_confirmed_at ?? null,
-          role: user.user_metadata?.role || "user",
-        }));
-        return NextResponse.json({ users });
-      }
-      return NextResponse.json({ users: [] });
+    if (!rpcError && rpcData) {
+      const users = rpcData.map((user: Record<string, unknown>) => ({
+        id: user.id as string,
+        email: (user.email as string) || "",
+        created_at: user.created_at as string,
+        last_sign_in_at: (user.last_sign_in_at as string | null) ?? null,
+        email_confirmed_at: (user.email_confirmed_at as string | null) ?? null,
+        role: ((user.raw_user_meta_data as Record<string, unknown>)?.role as string) || "user",
+      }));
+      return NextResponse.json({ users });
     }
 
-    if (!data) {
-      return NextResponse.json({ users: [] });
+    // Fallback to admin.listUsers if RPC fails
+    console.warn("[API /api/users] RPC failed, trying admin.listUsers:", rpcError);
+    const { data: adminData, error: adminError } = await supabase.auth.admin.listUsers();
+
+    if (adminError) {
+      console.error("[API /api/users] Both RPC and admin.listUsers failed:", { rpcError, adminError });
+      return NextResponse.json({ error: adminError.message }, { status: 500 });
     }
 
-    const users = data.map((user: Record<string, unknown>) => ({
-      id: user.id as string,
-      email: (user.email as string) || "",
-      created_at: user.created_at as string,
-      last_sign_in_at: (user.last_sign_in_at as string | null) ?? null,
-      email_confirmed_at: (user.email_confirmed_at as string | null) ?? null,
-      role: ((user.raw_user_meta_data as Record<string, unknown>)?.role as string) || "user",
-    }));
+    if (adminData?.users) {
+      const users = adminData.users.map((user) => ({
+        id: user.id,
+        email: user.email || "",
+        created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at ?? null,
+        email_confirmed_at: user.email_confirmed_at ?? null,
+        role: user.user_metadata?.role || "user",
+      }));
+      return NextResponse.json({ users });
+    }
 
-    return NextResponse.json({ users });
+    return NextResponse.json({ users: [] });
   } catch (err) {
     console.error("[API /api/users] Exception:", err);
     return NextResponse.json(
