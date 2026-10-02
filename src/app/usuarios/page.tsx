@@ -125,7 +125,12 @@ export default function UsuariosPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Erro ao criar usuário.");
+        // Handle specific duplicate key error from API or raw DB error if API passthrough
+        if (data.error && (data.error.includes("duplicate") || data.error.includes("already registered") || data.error.includes("unique constraint"))) {
+          setError(`O email ${newEmail} já está cadastrado no sistema.`);
+        } else {
+          setError(data.error || "Erro ao criar usuário.");
+        }
       } else {
         setSuccess(`Usuário ${newEmail} criado com sucesso!`);
         setNewEmail("");
