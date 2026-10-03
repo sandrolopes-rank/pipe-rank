@@ -21,7 +21,6 @@ export async function GET() {
   });
 
   try {
-    // Use ONLY the RPC function - admin.listUsers is broken and returns "Database error finding users"
     console.log("[API /api/users] Calling RPC list_all_auth_users...");
     const { data: rpcData, error: rpcError } = await supabase.rpc("list_all_auth_users");
 
@@ -39,6 +38,7 @@ export async function GET() {
     }
 
     console.log("[API /api/users] RPC success, found", rpcData.length, "users");
+
     const users = rpcData.map((user: Record<string, unknown>) => ({
       id: user.id as string,
       email: (user.email as string) || "",
@@ -46,6 +46,8 @@ export async function GET() {
       last_sign_in_at: (user.last_sign_in_at as string | null) ?? null,
       email_confirmed_at: (user.email_confirmed_at as string | null) ?? null,
       role: ((user.raw_user_meta_data as Record<string, unknown>)?.role as string) || "user",
+      username: ((user.raw_user_meta_data as Record<string, unknown>)?.username as string) || ((user.email as string)?.split("@")[0]) || "",
+      banned_until: (user.banned_until as string | null) ?? null,
     }));
 
     return NextResponse.json({ users });

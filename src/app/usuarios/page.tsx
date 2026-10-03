@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { redirect } from "next/navigation";
 import {
   Users,
   Plus,
@@ -18,6 +17,10 @@ import {
   AlertTriangle,
   CheckCircle,
   ChevronDown,
+  Ban,
+  RotateCcw,
+  Lock,
+  User as UserIcon,
 } from "lucide-react";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
@@ -29,6 +32,8 @@ interface AuthUser {
   last_sign_in_at: string | null;
   email_confirmed_at: string | null;
   role: string;
+  username: string;
+  banned_until: string | null;
 }
 
 export default function UsuariosPage() {
@@ -37,12 +42,16 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<string | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -71,7 +80,7 @@ export default function UsuariosPage() {
       const data = await res.json();
       if (!res.ok) {
         console.error("API /api/users error:", data.error);
-        setError(`Erro ao carregar usuários: ${data.error || 'Erro desconhecido'}. Verifique se SUPABASE_SERVICE_ROLE_KEY está configurada na Vercel.`);
+        setError(`Erro ao carregar usuários: ${data.error || 'Erro desconhecido'}.`);
       } else if (data.users) {
         setUsers(data.users.map((u: AuthUser) => ({
           ...u,
@@ -80,8 +89,7 @@ export default function UsuariosPage() {
       }
     } catch (err) {
       console.error("Fetch /api/users failed:", err);
-      setError("Erro de conexão ao buscar usuários. Verificando usuário atual...");
-      // Fallback: show only current user
+      setError("Erro de conexão ao buscar usuários.");
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -91,7 +99,9 @@ export default function UsuariosPage() {
           created_at: user.created_at,
           last_sign_in_at: user.last_sign_in_at ?? null,
           email_confirmed_at: user.email_confirmed_at ?? null,
-          role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user'
+          role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user',
+          username: user.email?.split("@")[0] || '',
+          banned_until: null,
         }]);
       }
     }
@@ -126,19 +136,19 @@ export default function UsuariosPage() {
       const res = await fetch("/api/users/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newEmail, password: newPassword }),
+        body: JSON.stringify({ username: newUsername, email: newEmail, password: newPassword }),
       });
       const data = await res.json();
 
       if (!res.ok) {
-        // Handle specific duplicate key error from API or raw DB error if API passthrough
         if (data.error && (data.error.includes("duplicate") || data.error.includes("already registered") || data.error.includes("unique constraint"))) {
           setError(`O email ${newEmail} já está cadastrado no sistema.`);
         } else {
           setError(data.error || "Erro ao criar usuário.");
         }
       } else {
-        setSuccess(`Usuário ${newEmail} criado com sucesso!`);
+        setSuccess(`Usuário ${newUsername || newEmail.split("@")[0]} criado com sucesso!`);
+        setNewUsername("");
         setNewEmail("");
         setNewPassword("");
         setShowCreateModal(false);
@@ -148,6 +158,56 @@ export default function UsuariosPage() {
       setError("Erro de conexão ao criar usuário.");
     }
     setSaving(false);
+  }
+
+  async function handleResetPassword(userId: string) {
+    if (!resetPasswordValue || resetPasswordValue.length < 6) {
+      setError("A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    setResetSaving(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/users/reset-password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, newPassword: resetPasswordValue }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError("Erro ao redefinir senha: " + (data.error || "Erro desconhecido"));
+      } else {
+        const user = users.find(u => u.id === userId);
+        setSuccess(`Senha de ${user?.username || user?.email?.split("@")[0]} redefinida com sucesso.`);
+        setResetPasswordUser(null);
+        setResetPasswordValue("");
+      }
+    } catch {
+      setError("Erro de conexão ao redefinir senha.");
+    }
+    setResetSaving(false);
+  }
+
+  async function handleToggleActive(userId: string, currentlyBanned: boolean) {
+    setError(null);
+    try {
+      const res = await fetch("/api/users/toggle-active", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, banDuration: currentlyBanned ? "none" : "876600h" }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError("Erro ao alterar status: " + (data.error || "Erro desconhecido"));
+      } else {
+        const user = users.find(u => u.id === userId);
+        const name = user?.username || user?.email?.split("@")[0];
+        setSuccess(currentlyBanned ? `${name} reativado com sucesso.` : `${name} desativado com sucesso.`);
+        await fetchUsers();
+      }
+    } catch {
+      setError("Erro de conexão ao alterar status.");
+    }
   }
 
   async function handleDeleteUser(id: string, email: string) {
@@ -166,7 +226,9 @@ export default function UsuariosPage() {
       if (!res.ok) {
         setError("Erro ao excluir usuário: " + (data.error || "Erro desconhecido"));
       } else {
-        setSuccess(`Usuário ${email} excluído com sucesso.`);
+        const user = users.find(u => u.id === id);
+        const name = user?.username || email.split("@")[0];
+        setSuccess(`Usuário ${name} excluído permanentemente.`);
         setUsers(users.filter((u) => u.id !== id));
       }
     } catch {
@@ -184,6 +246,9 @@ export default function UsuariosPage() {
   }
 
   if (!isAdmin) return null;
+
+  const activeUsers = users.filter(u => !u.banned_until);
+  const bannedUsers = users.filter(u => !!u.banned_until);
 
   return (
     <DashboardLayout userEmail={userEmail}>
@@ -228,10 +293,11 @@ export default function UsuariosPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Total de Usuários", value: users.length, icon: Users, color: "#a78bfa" },
-          { label: "Confirmados", value: users.filter((u) => u.email_confirmed_at).length, icon: UserCheck, color: "#34d399" },
+          { label: "Total", value: users.length, icon: Users, color: "#a78bfa" },
+          { label: "Ativos", value: activeUsers.length, icon: UserCheck, color: "#34d399" },
+          { label: "Desativados", value: bannedUsers.length, icon: Ban, color: "#f87171" },
           { label: "Pendentes", value: users.filter((u) => !u.email_confirmed_at).length, icon: UserX, color: "#fbbf24" },
         ].map((stat) => (
           <div
@@ -256,12 +322,12 @@ export default function UsuariosPage() {
         <table className="w-full">
           <thead>
             <tr style={{ borderBottom: "1px solid #1e1e1e" }}>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Email</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Usuário</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Status</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Criado em</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Último acesso</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Privilégio</th>
-              <th className="w-10 px-2 py-3"></th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -279,41 +345,68 @@ export default function UsuariosPage() {
             ) : (
               users.map((user) => {
                 const isConfirmed = !!user.email_confirmed_at;
+                const isBanned = !!user.banned_until;
                 const userRole = user.role || 'user';
                 const isAdminRole = userRole === 'admin';
                 const isCurrentUser = user.email.toLowerCase() === userEmail.toLowerCase();
+                const displayName = user.username || user.email.split("@")[0];
+
                 return (
                   <tr
                     key={user.id}
                     className="transition-colors hover:bg-[#1a1a1a]/50"
-                    style={{ borderBottom: "1px solid rgba(30,30,30,0.5)" }}
+                    style={{ borderBottom: "1px solid rgba(30,30,30,0.5)", opacity: isBanned ? 0.6 : 1 }}
                   >
+                    {/* User column */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <Mail size={12} className="text-[#525252]" />
-                        <span className="text-sm text-white">{user.email}</span>
-                        {isCurrentUser && <span className="text-[9px] text-[#525252]">(você)</span>}
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold"
+                          style={{ background: isBanned ? "rgba(248,113,113,0.15)" : "rgba(124,58,237,0.15)", color: isBanned ? "#f87171" : "#a78bfa" }}>
+                          {displayName.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-medium text-white">{displayName}</span>
+                            {isCurrentUser && <span className="text-[9px] text-[#525252]">(você)</span>}
+                          </div>
+                          <span className="text-[10px] text-[#525252]">{user.email}</span>
+                        </div>
                       </div>
                     </td>
+
+                    {/* Status column */}
                     <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                        style={{
-                          background: isConfirmed ? "rgba(52,211,153,0.15)" : "rgba(251,191,36,0.15)",
-                          color: isConfirmed ? "#34d399" : "#fbbf24",
-                          border: `1px solid ${isConfirmed ? "rgba(52,211,153,0.3)" : "rgba(251,191,36,0.3)"}`,
-                        }}
-                      >
-                        {isConfirmed ? <UserCheck size={10} /> : <UserX size={10} />}
-                        {isConfirmed ? "Confirmado" : "Pendente"}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        {isBanned ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
+                            style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>
+                            <Ban size={10} /> Desativado
+                          </span>
+                        ) : isConfirmed ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
+                            style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
+                            <UserCheck size={10} /> Ativo
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
+                            style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
+                            <UserX size={10} /> Pendente
+                          </span>
+                        )}
+                      </div>
                     </td>
+
+                    {/* Created at */}
                     <td className="px-4 py-3 text-xs text-[#737373]">
                       {user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "—"}
                     </td>
+
+                    {/* Last sign in */}
                     <td className="px-4 py-3 text-xs text-[#737373]">
                       {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}
                     </td>
+
+                    {/* Privilege dropdown */}
                     <td className="px-4 py-3">
                       <div className="relative inline-block">
                         <select
@@ -333,44 +426,93 @@ export default function UsuariosPage() {
                           <option value="user" style={{ background: "#1a1a1a", color: "#a3a3a3" }}>Usuário</option>
                           <option value="admin" style={{ background: "#1a1a1a", color: "#a78bfa" }}>Administrador</option>
                         </select>
-                        <Shield
-                          size={10}
-                          className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }}
-                        />
-                        <ChevronDown
-                          size={10}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }}
-                        />
+                        <Shield size={10} className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }} />
+                        <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }} />
                       </div>
                     </td>
-                    <td className="px-2 py-3">
-                      {!isCurrentUser && (
-                        deleteConfirm === user.id ? (
-                          <div className="flex items-center gap-1">
+
+                    {/* Actions */}
+                    <td className="px-4 py-3">
+                      {isCurrentUser ? (
+                        <span className="text-[10px] text-[#404040]">—</span>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          {/* Reset Password */}
+                          {resetPasswordUser === user.id ? (
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="password"
+                                value={resetPasswordValue}
+                                onChange={(e) => setResetPasswordValue(e.target.value)}
+                                placeholder="Nova senha"
+                                minLength={6}
+                                className="w-24 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-2 py-1 text-[10px] text-white focus:outline-none focus:border-violet-500/50"
+                              />
+                              <button
+                                onClick={() => handleResetPassword(user.id)}
+                                disabled={resetSaving}
+                                className="text-[10px] px-2 py-1 rounded text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                              >
+                                {resetSaving ? "..." : "OK"}
+                              </button>
+                              <button
+                                onClick={() => { setResetPasswordUser(null); setResetPasswordValue(""); }}
+                                className="text-[10px] px-1 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={() => handleDeleteUser(user.id, user.email)}
-                              className="text-[10px] px-2 py-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              onClick={() => { setResetPasswordUser(user.id); setResetPasswordValue(""); setError(null); }}
+                              className="p-1.5 rounded-lg text-[#525252] hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
+                              title="Redefinir senha"
                             >
-                              Confirmar
+                              <Lock size={13} />
                             </button>
-                            <button
-                              onClick={() => setDeleteConfirm(null)}
-                              className="text-[10px] px-2 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        ) : (
+                          )}
+
+                          {/* Toggle Active / Ban */}
                           <button
-                            onClick={() => setDeleteConfirm(user.id)}
-                            className="text-[#525252] hover:text-red-400 transition-colors cursor-pointer"
-                            title="Excluir usuário"
+                            onClick={() => handleToggleActive(user.id, isBanned)}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isBanned
+                                ? "text-emerald-400 hover:bg-emerald-500/10"
+                                : "text-[#525252] hover:text-amber-400 hover:bg-amber-500/10"
+                            }`}
+                            title={isBanned ? "Reativar usuário" : "Desativar usuário"}
                           >
-                            <Trash2 size={14} />
+                            {isBanned ? <RotateCcw size={13} /> : <Ban size={13} />}
                           </button>
-                        )
+
+                          {/* Delete */}
+                          {deleteConfirm === user.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                className="text-[10px] px-2 py-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              >
+                                Sim
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(null)}
+                                className="text-[10px] px-2 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                              >
+                                Não
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setDeleteConfirm(user.id)}
+                              className="p-1.5 rounded-lg text-[#525252] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Excluir permanentemente"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -390,7 +532,7 @@ export default function UsuariosPage() {
           >
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #1e1e1e" }}>
               <div className="flex items-center gap-2">
-                <Key size={16} style={{ color: "#a78bfa" }} />
+                <UserIcon size={16} style={{ color: "#a78bfa" }} />
                 <h2 className="text-sm font-bold text-white">Criar Novo Usuário</h2>
               </div>
               <button onClick={() => setShowCreateModal(false)} className="text-[#525252] hover:text-white transition-colors cursor-pointer">
@@ -399,27 +541,47 @@ export default function UsuariosPage() {
             </div>
             <form onSubmit={handleCreateUser} className="p-6 space-y-4">
               <div>
+                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Nome de usuário</label>
+                <div className="relative">
+                  <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="Ex: joao.silva"
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                  />
+                </div>
+                <p className="text-[10px] text-[#525252] mt-1">Nome exibido no sistema. Se vazio, usa o prefixo do email.</p>
+              </div>
+              <div>
                 <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="usuario@empresa.com"
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50"
-                />
+                <div className="relative">
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="usuario@rankmyapp.com.br"
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Senha temporária</label>
-                <input
-                  type="password"
-                  required
-                  minLength={6}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-violet-500/50"
-                />
+                <div className="relative">
+                  <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <input
+                    type="password"
+                    required
+                    minLength={6}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                  />
+                </div>
                 <p className="text-[10px] text-[#525252] mt-1">O usuário deverá alterar a senha após o primeiro acesso</p>
               </div>
               {error && (

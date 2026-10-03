@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient as createSupabaseAdmin } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: Request) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -12,10 +12,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createSupabaseAdmin(supabaseUrl, serviceRoleKey);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 
   try {
-    const { email, password } = await request.json();
+    const { username, email, password } = await request.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -24,14 +29,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Derive username from email if not provided
+    const derivedUsername = username || email.split("@")[0];
+
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
+      user_metadata: { username: derivedUsername },
     });
 
     if (error) {
-      // Check for duplicate email error
       if (
         error.message.includes("duplicate") ||
         error.message.includes("already registered") ||
@@ -52,7 +60,9 @@ export async function POST(request: Request) {
         created_at: data.user.created_at,
         last_sign_in_at: data.user.last_sign_in_at ?? null,
         email_confirmed_at: data.user.email_confirmed_at ?? null,
-        role: "user",
+        role: data.user.user_metadata?.role || "user",
+        username: data.user.user_metadata?.username || derivedUsername,
+        banned_until: data.user.banned_until ?? null,
       },
     });
   } catch (err) {
