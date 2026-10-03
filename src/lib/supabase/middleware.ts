@@ -34,11 +34,13 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect routes: redirect to login if not authenticated
+  // Allow /api/ routes without auth - they use service_role_key internally
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth") &&
-    !request.nextUrl.pathname.startsWith("/recupera-senha")
+    !request.nextUrl.pathname.startsWith("/recupera-senha") &&
+    !request.nextUrl.pathname.startsWith("/api/")
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
