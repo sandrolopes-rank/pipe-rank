@@ -208,9 +208,22 @@ export default function OverviewPage() {
         setCurrentUser({ id: user.id, email: user.email });
         setIsAdmin(user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
-        // Fetch available users for admin assignment dropdown
-        // Using auth.getUser() fallback to avoid RPC type mismatch errors (42804)
+        // Fetch all available users for admin assignment dropdown
         if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+          try {
+            const res = await fetch("/api/users");
+            const data = await res.json();
+            if (res.ok && data.users) {
+              setAvailableUsers(data.users.map((u: { id: string; email: string }) => ({ id: u.id, email: u.email })));
+            } else {
+              // Fallback to current user only
+              setAvailableUsers([{ id: user.id, email: user.email }]);
+            }
+          } catch {
+            setAvailableUsers([{ id: user.id, email: user.email }]);
+          }
+        } else {
+          // Non-admin users can only assign to themselves
           setAvailableUsers([{ id: user.id, email: user.email }]);
         }
       }
@@ -1711,17 +1724,23 @@ export default function OverviewPage() {
                   </label>
                   <select
                     value={formData.owner_email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, owner_email: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const selectedEmail = e.target.value;
+                      const name = selectedEmail ? selectedEmail.split("@")[0] : "";
+                      setFormData({ ...formData, owner_email: selectedEmail, responsavel: name });
+                    }}
                     className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   >
                     <option value="">Selecione um usuário...</option>
-                    {availableUsers.map((u) => (
-                      <option key={u.id} value={u.email}>
-                        {u.email === currentUser?.email ? `Eu (${u.email})` : u.email}
-                      </option>
-                    ))}
+                    {availableUsers.map((u) => {
+                      const name = u.email.split("@")[0];
+                      const isMe = u.email === currentUser?.email;
+                      return (
+                        <option key={u.id} value={u.email}>
+                          {isMe ? `${name} (eu)` : name}
+                        </option>
+                      );
+                    })}
                   </select>
                   <p className="text-[10px] text-[#525252] mt-1">
                     Apenas usuários com acesso ao sistema aparecem aqui
