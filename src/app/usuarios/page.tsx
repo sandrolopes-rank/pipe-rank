@@ -17,6 +17,7 @@ import {
   Save,
   AlertTriangle,
   CheckCircle,
+  ChevronDown,
 } from "lucide-react";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
@@ -97,16 +98,21 @@ export default function UsuariosPage() {
   }
 
   async function handleSetRole(userId: string, newRole: string) {
-    const supabase = createClient();
-    const { error } = await supabase.rpc("set_user_role", {
-      target_user_id: userId,
-      new_role: newRole,
-    });
-    if (error) {
-      setError("Erro ao alterar privilégio: " + error.message);
-    } else {
-      setSuccess(`Privilégio alterado para ${newRole === 'admin' ? 'Administrador' : 'Usuário'}.`);
-      await fetchUsers();
+    try {
+      const res = await fetch("/api/users/role", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError("Erro ao alterar privilégio: " + (data.error || "Erro desconhecido"));
+      } else {
+        setSuccess(`Privilégio alterado para ${newRole === 'admin' ? 'Administrador' : 'Usuário'}.`);
+        await fetchUsers();
+      }
+    } catch {
+      setError("Erro de conexão ao alterar privilégio.");
     }
   }
 
@@ -150,13 +156,21 @@ export default function UsuariosPage() {
       setDeleteConfirm(null);
       return;
     }
-    const supabase = createClient();
-    const { error } = await supabase.rpc("delete_auth_user", { user_id: id });
-    if (error) {
-      setError("Erro ao excluir usuário: " + error.message);
-    } else {
-      setSuccess(`Usuário ${email} excluído com sucesso.`);
-      setUsers(users.filter((u) => u.id !== id));
+    try {
+      const res = await fetch("/api/users/delete", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: id }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError("Erro ao excluir usuário: " + (data.error || "Erro desconhecido"));
+      } else {
+        setSuccess(`Usuário ${email} excluído com sucesso.`);
+        setUsers(users.filter((u) => u.id !== id));
+      }
+    } catch {
+      setError("Erro de conexão ao excluir usuário.");
     }
     setDeleteConfirm(null);
   }
@@ -301,38 +315,34 @@ export default function UsuariosPage() {
                       {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {isAdminRole ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                            style={{ background: "rgba(124,58,237,0.15)", color: "#a78bfa", border: "1px solid rgba(124,58,237,0.3)" }}
-                          >
-                            <Shield size={10} />
-                            Admin
-                          </span>
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                            style={{ background: "rgba(115,115,115,0.15)", color: "#a3a3a3", border: "1px solid rgba(115,115,115,0.3)" }}
-                          >
-                            Usuário
-                          </span>
-                        )}
-                        {/* Promote/Demote button - cannot change own role */}
-                        {!isCurrentUser && (
-                          <button
-                            onClick={() => handleSetRole(user.id, isAdminRole ? 'user' : 'admin')}
-                            className="text-[9px] px-2 py-0.5 rounded transition-colors cursor-pointer"
-                            style={{
-                              background: isAdminRole ? "rgba(251,191,36,0.1)" : "rgba(124,58,237,0.1)",
-                              color: isAdminRole ? "#fbbf24" : "#a78bfa",
-                              border: `1px solid ${isAdminRole ? "rgba(251,191,36,0.3)" : "rgba(124,58,237,0.3)"}`,
-                            }}
-                            title={isAdminRole ? "Remover privilégio de admin" : "Promover a admin"}
-                          >
-                            {isAdminRole ? "Remover Admin" : "Promover"}
-                          </button>
-                        )}
+                      <div className="relative inline-block">
+                        <select
+                          value={userRole}
+                          disabled={isCurrentUser}
+                          onChange={(e) => handleSetRole(user.id, e.target.value)}
+                          className="appearance-none text-[10px] font-semibold pl-6 pr-7 py-1 rounded-lg cursor-pointer focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                          style={{
+                            background: isAdminRole
+                              ? "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(124,58,237,0.08))"
+                              : "linear-gradient(135deg, rgba(115,115,115,0.15), rgba(115,115,115,0.08))",
+                            color: isAdminRole ? "#a78bfa" : "#a3a3a3",
+                            border: `1px solid ${isAdminRole ? "rgba(124,58,237,0.3)" : "rgba(115,115,115,0.3)"}`,
+                          }}
+                          title={isCurrentUser ? "Não é possível alterar seu próprio privilégio" : "Alterar privilégio"}
+                        >
+                          <option value="user" style={{ background: "#1a1a1a", color: "#a3a3a3" }}>Usuário</option>
+                          <option value="admin" style={{ background: "#1a1a1a", color: "#a78bfa" }}>Administrador</option>
+                        </select>
+                        <Shield
+                          size={10}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }}
+                        />
+                        <ChevronDown
+                          size={10}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
+                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }}
+                        />
                       </div>
                     </td>
                     <td className="px-2 py-3">
