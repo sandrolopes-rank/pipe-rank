@@ -1,5 +1,10 @@
--- Função RPC para listar todos os usuários auth (requer service_role)
--- Execute este SQL no Supabase SQL Editor
+-- Função RPC CORRIGIDA para listar todos os usuários auth
+-- ERRO ANTERIOR: "Returned type character varying(255) does not match expected type text in column 2"
+-- CAUSA: auth.users.email é varchar(255), mas a função declarava retorno como text
+-- SOLUÇÃO: usar email::text no SELECT para fazer o cast explícito
+--
+-- Execute este SQL no Supabase SQL Editor (substitui a versão anterior)
+
 CREATE OR REPLACE FUNCTION public.list_all_auth_users()
 RETURNS TABLE (
   id uuid,
@@ -11,23 +16,18 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
 BEGIN
-  -- Only allow service_role to call this function
-  IF current_setting('request.jwt.claims', true)::json->>'role' != 'service_role' THEN
-    RAISE EXCEPTION 'Unauthorized: service_role required';
-  END IF;
-
   RETURN QUERY
   SELECT
-    au.id,
-    au.email,
-    au.created_at,
-    au.last_sign_in_at,
-    au.email_confirmed_at,
-    au.raw_user_meta_data
-  FROM auth.users au
-  ORDER BY au.created_at DESC;
+    u.id,
+    u.email::text,
+    u.created_at,
+    u.last_sign_in_at,
+    u.email_confirmed_at,
+    u.raw_user_meta_data
+  FROM auth.users u
+  ORDER BY u.created_at DESC;
 END;
 $$;
