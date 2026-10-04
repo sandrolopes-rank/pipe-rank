@@ -34,13 +34,29 @@ const upcomingItems = [
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
-export function Sidebar({ userEmail, activeCount }: { userEmail?: string; activeCount?: number }) {
+export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?: string; activeCount?: number }) {
   const pathname = usePathname();
   const router = useRouter();
-  const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const { paletteId, mode, setPaletteId, toggleMode, allPalettes } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
+  const [userEmail, setUserEmail] = useState(propUserEmail || "");
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Fetch user email from Supabase if not provided via props
+  useEffect(() => {
+    if (!propUserEmail) {
+      async function fetchUser() {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          setUserEmail(user.email);
+        }
+      }
+      fetchUser();
+    }
+  }, [propUserEmail]);
+
+  const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   // Close settings menu when clicking outside
   useEffect(() => {
