@@ -709,7 +709,7 @@ export default function OverviewPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#a3a3a3]">Upsell</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Upsell</span>
               <p
                 className="text-xl font-bold tracking-tight"
                 style={{
@@ -722,7 +722,7 @@ export default function OverviewPage() {
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#a3a3a3]">Cross Sell</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Cross Sell</span>
               <p
                 className="text-xl font-bold tracking-tight"
                 style={{
@@ -743,7 +743,7 @@ export default function OverviewPage() {
               >
                 {upsellTrend > 0 ? "↑" : "↓"} {Math.abs(upsellTrend).toFixed(1)}%
               </span>
-              <span className="text-[10px] text-[#525252]">vs mês anterior</span>
+              <span className="text-[10px]" style={{ color: "var(--muted)" }}>vs mês anterior</span>
             </div>
           )}
         </div>
@@ -763,9 +763,9 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Propostas em Andamento</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Propostas em Andamento</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
+                <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Top 3 produtos por upsell negociado (clique para ver todos)
                 </div>
@@ -795,12 +795,12 @@ export default function OverviewPage() {
             {topProdutos.length > 0 ? (
               topProdutos.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-[#a3a3a3] truncate max-w-[120px]">{item.produto}</span>
+                  <span className="truncate max-w-[120px]" style={{ color: "var(--muted)" }}>{item.produto}</span>
                   <span className="text-amber-400 font-medium">{formatCurrency(item.value)}</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#525252]">Nenhum produto ativo</p>
+              <p className="text-xs" style={{ color: "var(--muted)" }}>Nenhum produto ativo</p>
             )}
           </div>
         </div>
@@ -820,7 +820,7 @@ export default function OverviewPage() {
             <div className="flex items-center gap-1.5">
               <span className="text-xs" style={{ color: "var(--muted)" }}>Mapa de Calor</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
+                <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Soma de upsell por temperatura em propostas ativas
                 </div>
@@ -874,7 +874,7 @@ export default function OverviewPage() {
               >
                 <div className="flex items-center gap-2">
                   <row.icon size={12} style={{ color: row.color }} />
-                  <span className="text-xs text-[#a3a3a3]">{row.label}</span>
+                  <span className="text-xs" style={{ color: "var(--muted)" }}>{row.label}</span>
                 </div>
                 <span className="text-sm font-bold" style={{ color: row.color }}>
                   {formatCurrency(row.value)}
@@ -899,10 +899,10 @@ export default function OverviewPage() {
         />
         <div className="relative flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
               {chartSlides[chartSlide].label}
             </h3>
-            <p className="text-xs text-[#737373]">Evolução mensal do pipeline</p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>Evolução mensal do pipeline</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Carousel navigation dots */}
@@ -914,7 +914,7 @@ export default function OverviewPage() {
                   className={`w-2 h-2 rounded-full transition-all cursor-pointer ${
                     idx === chartSlide ? "w-6" : "opacity-40 hover:opacity-70"
                   }`}
-                  style={{ background: idx === chartSlide ? slide.color : "#525252" }}
+                  style={{ background: idx === chartSlide ? slide.color : "var(--muted)" }}
                   title={slide.label}
                 />
               ))}
@@ -975,7 +975,7 @@ export default function OverviewPage() {
             const data = currentSlide.data;
             if (data.length === 0) {
               return (
-                <div className="h-full flex flex-col items-center justify-center text-[#525252] gap-2">
+                <div className="h-full flex flex-col items-center justify-center gap-2" style={{ color: "var(--muted)" }}>
                   <BarChart3 size={32} className="opacity-30" />
                   <span className="text-sm">{loading ? "Carregando dados..." : "Sem dados para exibir"}</span>
                 </div>
@@ -1029,7 +1029,7 @@ export default function OverviewPage() {
                               {formatCurrency(Number(item.value))}
                             </p>
                             {item.count !== undefined && (
-                              <p style={{ color: "#a3a3a3", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
+                              <p style={{ color: "var(--muted)", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
                             )}
                             {item.clients?.length > 0 && (
                               <div style={{ borderTop: `1px solid ${currentSlide.color}30`, paddingTop: 8 }}>
@@ -1038,7 +1038,7 @@ export default function OverviewPage() {
                                   <p key={i} style={{ color: "#d4d4d4", fontSize: 11, marginBottom: 2 }}>• {c}</p>
                                 ))}
                                 {item.clients.length > 5 && (
-                                  <p style={{ color: "#737373", fontSize: 10, fontStyle: "italic" }}>+{item.clients.length - 5} mais</p>
+                                  <p style={{ color: "var(--muted)", fontSize: 10, fontStyle: "italic" }}>+{item.clients.length - 5} mais</p>
                                 )}
                               </div>
                             )}
@@ -1195,7 +1195,7 @@ export default function OverviewPage() {
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-block w-2 h-2 rounded-full"
-                        style={{ background: statusGradients[status] || "linear-gradient(90deg, #737373, #a3a3a3)" }}
+                        style={{ background: statusGradients[status] || "linear-gradient(90deg, var(--muted), var(--foreground))" }}
                       />
                       <span className="text-xs" style={{ color: "var(--muted)" }}>{status}</span>
                     </div>
@@ -1211,7 +1211,7 @@ export default function OverviewPage() {
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${pct}%`,
-                        background: statusGradients[status] || "linear-gradient(90deg, #737373, #a3a3a3)"
+                        background: statusGradients[status] || "linear-gradient(90deg, var(--muted), var(--foreground))"
                       }}
                     />
                   </div>
@@ -1357,8 +1357,9 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
           style={{
+            color: "#ffffff",
             background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
             boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
           }}
@@ -1411,7 +1412,8 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                 <tr>
                   <td
                     colSpan={Object.values(visibleColumns).filter(Boolean).length + 1}
-                    className="text-center py-12 text-[#525252]"
+                    className="text-center py-12"
+style={{ color: "var(--muted)" }}
                   >
                     Carregando...
                   </td>
@@ -1567,7 +1569,7 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span
                             className="inline-flex items-center gap-1 text-[10px] font-medium"
-                            style={{ color: isStale ? "#f87171" : days > 3 ? "#fbbf24" : "#525252" }}
+                            style={{ color: isStale ? "var(--danger)" : days > 3 ? "var(--warning)" : "var(--muted)" }}
                           >
                             {isStale && <AlertTriangle size={10} />}
                             {!isStale && days > 0 && <Clock size={10} />}
@@ -1869,7 +1871,7 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                             }}
                           >
                             <div className="w-4 h-4 rounded border flex items-center justify-center" style={{ background: isSelected ? "var(--accent)" : "transparent", borderColor: isSelected ? "var(--accent)" : "var(--muted)" }}>
-                              {isSelected && <span className="text-white text-xs">✓</span>}
+                              {isSelected && <span style={{ color: "#ffffff" }} className="text-xs">✓</span>}
                             </div>
                             <span style={{ color: isSelected ? "var(--foreground)" : "var(--muted)" }}>{option}</span>
                           </div>
@@ -2076,8 +2078,9 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
                   style={{
+                    color: "#ffffff",
                     background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
                     boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
                   }}
@@ -2112,8 +2115,8 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-colors font-medium cursor-pointer"
-                style={{ background: "var(--danger)" }}
+                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg transition-colors font-medium cursor-pointer"
+                style={{ color: "#ffffff", background: "var(--danger)" }}
               >
                 <Trash2 size={14} />
                 Excluir

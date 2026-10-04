@@ -273,8 +273,8 @@ export default function UsuariosPage() {
         </div>
         <button
           onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 cursor-pointer"
-          style={{ background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 cursor-pointer"
+          style={{ color: "#ffffff", background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
         >
           <Plus size={14} />
           Novo Usuário
@@ -588,8 +588,8 @@ export default function UsuariosPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
-                  style={{ background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                  style={{ color: "#ffffff", background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
                 >
                   <Save size={14} />
                   {saving ? "Criando..." : "Criar Usuário"}
