@@ -4,6 +4,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { useTheme } from "@/lib/theme/ThemeContext";
 import {
   AreaChart,
   Area,
@@ -140,6 +141,7 @@ const emptyOpportunity: Omit<Opportunity, "id" | "created_at" | "updated_at"> = 
 };
 
 export default function OverviewPage() {
+  const { mode } = useTheme();
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
@@ -677,13 +679,13 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5 group"
           style={{
-            background: "linear-gradient(135deg, #1a1033 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #8b5cf6, transparent)" }}
+            style={{ background: `radial-gradient(circle, var(--accent), transparent)` }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -698,11 +700,11 @@ export default function OverviewPage() {
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, #7c3aed33, #7c3aed11)",
-                border: "1px solid #7c3aed44",
+                background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 7%, transparent))`,
+                border: `1px solid color-mix(in srgb, var(--accent) 27%, transparent)`,
               }}
             >
-              <BarChart3 size={16} className="text-violet-400" />
+              <BarChart3 size={16} style={{ color: "var(--accent-text)" }} />
             </div>
           </div>
           <div className="space-y-2">
@@ -748,16 +750,16 @@ export default function OverviewPage() {
 
         {/* Card 2: Propostas em Andamento com Top 3 Produtos */}
         <div
-          className="relative overflow-hidden rounded-2xl p-5 group cursor-pointer hover:border-amber-500/30 transition-colors"
+          className="relative overflow-hidden rounded-2xl p-5 group cursor-pointer transition-colors"
           style={{
-            background: "linear-gradient(135deg, #1a1505 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
+            border: "1px solid var(--card-border)",
           }}
           onClick={() => setShowPropostasModal(true)}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #f59e0b, transparent)" }}
+            style={{ background: `radial-gradient(circle, var(--warning), transparent)` }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -772,11 +774,11 @@ export default function OverviewPage() {
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, #f59e0b33, #f59e0b11)",
-                border: "1px solid #f59e0b44",
+                background: `linear-gradient(135deg, color-mix(in srgb, var(--warning) 20%, transparent), color-mix(in srgb, var(--warning) 7%, transparent))`,
+                border: `1px solid color-mix(in srgb, var(--warning) 27%, transparent)`,
               }}
             >
-              <Target size={16} className="text-amber-400" />
+              <Target size={16} style={{ color: "var(--warning)" }} />
             </div>
           </div>
           <p
@@ -806,17 +808,17 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5 group"
           style={{
-            background: "linear-gradient(135deg, #1a0f05 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #f97316, transparent)" }}
+            style={{ background: `radial-gradient(circle, var(--accent-gradient-to), transparent)` }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Mapa de Calor</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Mapa de Calor</span>
               <div className="relative group/tip">
                 <Info size={12} className="text-[#525252] cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
@@ -827,11 +829,11 @@ export default function OverviewPage() {
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center"
               style={{
-                background: "linear-gradient(135deg, #f9731633, #f9731611)",
-                border: "1px solid #f9731644",
+                background: `linear-gradient(135deg, color-mix(in srgb, var(--accent-gradient-to) 20%, transparent), color-mix(in srgb, var(--accent-gradient-to) 7%, transparent))`,
+                border: `1px solid color-mix(in srgb, var(--accent-gradient-to) 27%, transparent)`,
               }}
             >
-              <Flame size={16} className="text-orange-400" />
+              <Flame size={16} style={{ color: "var(--accent-text)" }} />
             </div>
           </div>
           <div className="relative space-y-2.5">
@@ -887,13 +889,13 @@ export default function OverviewPage() {
       <div
         className="relative overflow-hidden rounded-2xl p-5 mb-6"
         style={{
-          background: "linear-gradient(135deg, #0a1628 0%, #141414 50%)",
-          border: "1px solid #222222",
+          background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 50%)`,
+          border: "1px solid var(--card-border)",
         }}
       >
         <div
           className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }}
+          style={{ background: `radial-gradient(circle, var(--accent), transparent)` }}
         />
         <div className="relative flex items-center justify-between mb-4">
           <div>
@@ -985,16 +987,16 @@ export default function OverviewPage() {
                         <stop offset="100%" stopColor={currentSlide.color} stopOpacity={0.4} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--table-border)" vertical={false} />
                     <XAxis
                       dataKey="month"
-                      tick={{ fill: "#737373", fontSize: 11 }}
-                      axisLine={{ stroke: "#1e1e1e" }}
+                      tick={{ fill: "var(--muted)", fontSize: 11 }}
+                      axisLine={{ stroke: "var(--table-border)" }}
                       tickLine={false}
                       dy={8}
                     />
                     <YAxis
-                      tick={{ fill: "#737373", fontSize: 11 }}
+                      tick={{ fill: "var(--muted)", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) =>
@@ -1059,16 +1061,16 @@ export default function OverviewPage() {
                         <stop offset="100%" stopColor={currentSlide.color} stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e1e1e" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--table-border)" vertical={false} />
                     <XAxis
                       dataKey="month"
-                      tick={{ fill: "#737373", fontSize: 11 }}
-                      axisLine={{ stroke: "#1e1e1e" }}
+                      tick={{ fill: "var(--muted)", fontSize: 11 }}
+                      axisLine={{ stroke: "var(--table-border)" }}
                       tickLine={false}
                       dy={8}
                     />
                     <YAxis
-                      tick={{ fill: "#737373", fontSize: 11 }}
+                      tick={{ fill: "var(--muted)", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
                       tickFormatter={(v) =>
@@ -1141,25 +1143,25 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5"
           style={{
-            background: "linear-gradient(135deg, #0f172a 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute bottom-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #10b981, transparent)" }}
+            style={{ background: `radial-gradient(circle, var(--success), transparent)` }}
           />
           <div className="relative flex items-center justify-between mb-4">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-semibold text-white">Distribuição por Status</h3>
+              <h3 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Distribuição por Status</h3>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Quantidade de propostas por estágio no pipeline completo
                 </div>
               </div>
             </div>
-            <span className="text-xs text-[#525252]">{opportunities.length} oportunidades</span>
+            <span className="text-xs" style={{ color: "var(--muted)" }}>{opportunities.length} oportunidades</span>
           </div>
           <div className="relative space-y-3">
             {Object.entries(statusColorsDashboard).map(([status, classes]) => {
@@ -1282,7 +1284,8 @@ export default function OverviewPage() {
             setFilterStatus(e.target.value);
             setPage(1);
           }}
-          className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+          className="rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer"
+style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
         >
           <option value="">Todos os Status</option>
           {statusOptions.map((s) => (
@@ -1298,7 +1301,8 @@ export default function OverviewPage() {
             setFilterCalor(e.target.value);
             setPage(1);
           }}
-          className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+          className="rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer"
+style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
         >
           <option value="">Todo Calor</option>
           {calorOptions.map((c) => (
@@ -1315,7 +1319,8 @@ export default function OverviewPage() {
               setFilterResponsavel(e.target.value);
               setPage(1);
             }}
-            className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+            className="rounded-lg px-3 py-2 text-xs focus:outline-none cursor-pointer"
+style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
           >
             <option value="">Todos Responsáveis</option>
             {uniqueResponsaveis.map((r) => (
@@ -1334,7 +1339,8 @@ export default function OverviewPage() {
 
         <button
           onClick={handleExport}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs text-[#a3a3a3] hover:text-white bg-[#141414] border border-[#222222] rounded-lg transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer"
+          style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", color: "var(--foreground)" }}
         >
           <Download size={14} />
           Exportar
@@ -1344,8 +1350,8 @@ export default function OverviewPage() {
           onClick={openCreateModal}
           className="flex items-center gap-1.5 px-4 py-2 text-xs text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
           style={{
-            background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
-            boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
+            background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
+            boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
           }}
         >
           <Plus size={14} />
@@ -1357,32 +1363,33 @@ export default function OverviewPage() {
       <div
         className="relative overflow-hidden rounded-2xl"
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #141414 40%)",
-          border: "1px solid #222222",
+          background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 40%)`,
+          border: "1px solid var(--card-border)",
         }}
       >
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e1e1e]">
+              <tr className="border-b" style={{ borderColor: "var(--table-border)" }}>
                 {Object.entries(columnLabels)
                   .filter(([key]) => visibleColumns[key])
                   .map(([key, label]) => (
                     <th
                       key={key}
-                      className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3] whitespace-nowrap cursor-pointer hover:text-white transition-colors select-none"
+                      className="text-left px-4 py-3 text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors select-none"
+                      style={{ color: "var(--muted)" }}
                       onClick={() => handleSort(key)}
                     >
                       <div className="flex items-center gap-1">
                         {label}
                         {sortColumn === key ? (
                           sortDirection === "asc" ? (
-                            <ArrowUp size={12} className="text-violet-400" />
+                            <ArrowUp size={12} style={{ color: "var(--accent-text)" }} />
                           ) : (
-                            <ArrowDown size={12} className="text-violet-400" />
+                            <ArrowDown size={12} style={{ color: "var(--accent-text)" }} />
                           )
                         ) : (
-                          <ArrowUpDown size={12} className="text-[#525252] opacity-0 group-hover:opacity-100" />
+                          <ArrowUpDown size={12} style={{ color: "var(--muted)", opacity: 0 }} className="group-hover:opacity-100" />
                         )}
                       </div>
                     </th>
@@ -1425,15 +1432,18 @@ export default function OverviewPage() {
                       if (target.closest('button') || target.closest('[data-menu]')) return;
                       openEditModal(opp);
                     }}
-                    className="border-b border-[#1e1e1e]/50 hover:bg-[#1a1a1a]/50 transition-colors cursor-pointer"
+                    className="border-b transition-colors cursor-pointer"
+                    style={{ borderColor: "var(--table-border)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--table-row-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
                     {visibleColumns.responsavel && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[10px] font-bold text-[#a3a3a3]">
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "var(--input-bg)", color: "var(--muted)" }}>
                             {opp.responsavel?.charAt(0).toUpperCase() || "?"}
                           </div>
-                          <span className="text-xs text-[#a3a3a3] truncate max-w-[80px]">
+                          <span className="text-xs truncate max-w-[80px]" style={{ color: "var(--muted)" }}>
                             {opp.responsavel}
                           </span>
                         </div>
@@ -1562,18 +1572,20 @@ export default function OverviewPage() {
                           onClick={() =>
                             setOpenMenu(openMenu === opp.id ? null : opp.id)
                           }
-                          className="p-1 text-[#525252] hover:text-white transition-colors cursor-pointer"
+                          className="p-1 transition-colors cursor-pointer"
+                          style={{ color: "var(--muted)" }}
                         >
                           <MoreHorizontal size={16} />
                         </button>
                         {openMenu === opp.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg py-1 z-50 min-w-[140px] shadow-xl">
+                          <div className="absolute right-0 top-full mt-1 rounded-lg py-1 z-50 min-w-[140px] shadow-xl" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)" }}>
                             <button
                               onClick={() => {
                                 openEditModal(opp);
                                 setOpenMenu(null);
                               }}
-                              className="w-full text-left px-3 py-1.5 text-xs text-[#a3a3a3] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer"
+                              className="w-full text-left px-3 py-1.5 text-xs transition-colors cursor-pointer"
+                              style={{ color: "var(--foreground)" }}
                             >
                               Editar
                             </button>
@@ -1582,7 +1594,8 @@ export default function OverviewPage() {
                                 setDeleteConfirm(opp.id);
                                 setOpenMenu(null);
                               }}
-                              className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-[#222222] transition-colors cursor-pointer"
+                              className="w-full text-left px-3 py-1.5 text-xs transition-colors cursor-pointer"
+                              style={{ color: "var(--danger)" }}
                             >
                               Excluir
                             </button>
@@ -1598,20 +1611,21 @@ export default function OverviewPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#1e1e1e]">
-          <span className="text-xs text-[#525252]">
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderTop: "1px solid var(--table-border)" }}>
+          <span className="text-xs" style={{ color: "var(--muted)" }}>
             0 de {filteredOpportunities.length} linha(s) selecionada(s).
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#525252]">Linhas por página</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Linhas por página</span>
               <select
                 value={perPage}
                 onChange={(e) => {
                   setPerPage(Number(e.target.value));
                   setPage(1);
                 }}
-                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white cursor-pointer"
+                className="rounded px-2 py-1 text-xs cursor-pointer"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
               >
                 {[10, 25, 50, 100].map((n) => (
                   <option key={n} value={n}>
@@ -1660,20 +1674,21 @@ export default function OverviewPage() {
       {/* Propostas em Andamento Modal */}
       {showPropostasModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e1e]">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
                 Produtos Negociados - Relação Completa
               </h2>
               <button
                 onClick={() => setShowPropostasModal(false)}
-                className="text-[#525252] hover:text-white transition-colors cursor-pointer"
+                className="transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <X size={20} />
               </button>
             </div>
             <div className="p-6">
-              <p className="text-xs text-[#737373] mb-4">
+              <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
                 Excluindo status Fechado e Perdido • {allProdutos.length} produto(s)
               </p>
               {allProdutos.length > 0 ? (
@@ -1681,17 +1696,18 @@ export default function OverviewPage() {
                   {allProdutos.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1a1a1a] border border-[#222222]"
+                      className="flex items-center justify-between px-4 py-3 rounded-lg"
+                      style={{ background: "var(--input-bg)", border: "1px solid var(--card-border)" }}
                     >
-                      <span className="text-sm text-white font-medium">{item.produto}</span>
-                      <span className="text-sm text-amber-400 font-bold">
+                      <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{item.produto}</span>
+                      <span className="text-sm font-bold" style={{ color: "var(--warning)" }}>
                         {formatCurrency(item.value)}
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-[#525252] text-center py-8">
+                <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
                   Nenhum produto ativo no momento
                 </p>
               )}
@@ -1703,14 +1719,15 @@ export default function OverviewPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e1e]">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
                 {editingOpportunity ? "Editar Oportunidade" : "Nova Oportunidade"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-[#525252] hover:text-white transition-colors cursor-pointer"
+                className="transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <X size={20} />
               </button>
@@ -1719,7 +1736,7 @@ export default function OverviewPage() {
               {/* Admin: assign owner */}
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Atribuir para (Admin)
                   </label>
                   <select
@@ -1729,7 +1746,8 @@ export default function OverviewPage() {
                       const name = selectedEmail ? selectedEmail.split("@")[0] : "";
                       setFormData({ ...formData, owner_email: selectedEmail, responsavel: name });
                     }}
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   >
                     <option value="">Selecione um usuário...</option>
                     {availableUsers.map((u) => {
@@ -1742,7 +1760,7 @@ export default function OverviewPage() {
                       );
                     })}
                   </select>
-                  <p className="text-[10px] text-[#525252] mt-1">
+                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>
                     Apenas usuários com acesso ao sistema aparecem aqui
                   </p>
                 </div>
@@ -1750,7 +1768,7 @@ export default function OverviewPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Responsável
                   </label>
                   <input
@@ -1760,11 +1778,12 @@ export default function OverviewPage() {
                       setFormData({ ...formData, responsavel: e.target.value })
                     }
                     required
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Cliente
                   </label>
                   <input
@@ -1774,25 +1793,28 @@ export default function OverviewPage() {
                       setFormData({ ...formData, cliente: e.target.value })
                     }
                     required
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                   Produto
                 </label>
                 <div className="relative">
                   <div
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white cursor-pointer min-h-[38px] flex items-center flex-wrap gap-1"
+                    className="w-full rounded-lg px-3 py-2 text-sm cursor-pointer min-h-[38px] flex items-center flex-wrap gap-1"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                     onClick={() => setShowProdutoDropdown(!showProdutoDropdown)}
                   >
                     {formData.produto ? (
                       formData.produto.split(", ").map((item, idx) => (
                         <span
                           key={idx}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500/20 text-blue-400 rounded text-xs"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
+                          style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)" }}
                         >
                           {item}
                           <button
@@ -1802,24 +1824,27 @@ export default function OverviewPage() {
                               const items = formData.produto.split(", ").filter((_, i) => i !== idx);
                               setFormData({ ...formData, produto: items.join(", ") });
                             }}
-                            className="hover:text-white"
+                            className="hover:opacity-70"
                           >
                             ×
                           </button>
                         </span>
                       ))
                     ) : (
-                      <span className="text-[#525252]">Selecione produtos...</span>
+                      <span style={{ color: "var(--muted)" }}>Selecione produtos...</span>
                     )}
                   </div>
                   {showProdutoDropdown && (
-                    <div className="absolute z-50 mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    <div className="absolute z-50 mt-1 w-full rounded-lg shadow-xl max-h-64 overflow-y-auto" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)" }}>
                       {["MI", "RI", "Ads Intelligence", "GEO", "RMAds", "Data Ads", "Data Rank", "Features", "Outros"].map((option) => {
                         const isSelected = formData.produto.split(", ").includes(option);
                         return (
                           <div
                             key={option}
-                            className="px-3 py-2 text-sm cursor-pointer hover:bg-[#2a2a2a] flex items-center gap-2"
+                            className="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"
+                            style={{ color: "var(--foreground)" }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--table-row-hover)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                             onClick={() => {
                               const items = formData.produto ? formData.produto.split(", ") : [];
                               if (isSelected) {
@@ -1829,18 +1854,19 @@ export default function OverviewPage() {
                               }
                             }}
                           >
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? "bg-blue-500 border-blue-500" : "border-[#525252]"}`}>
+                            <div className="w-4 h-4 rounded border flex items-center justify-center" style={{ background: isSelected ? "var(--accent)" : "transparent", borderColor: isSelected ? "var(--accent)" : "var(--muted)" }}>
                               {isSelected && <span className="text-white text-xs">✓</span>}
                             </div>
-                            <span className={isSelected ? "text-white" : "text-[#a3a3a3]"}>{option}</span>
+                            <span style={{ color: isSelected ? "var(--foreground)" : "var(--muted)" }}>{option}</span>
                           </div>
                         );
                       })}
-                      <div className="border-t border-[#2a2a2a] p-2">
+                      <div className="p-2" style={{ borderTop: "1px solid var(--input-border)" }}>
                         <input
                           type="text"
                           placeholder="Digitar outro..."
-                          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                          className="w-full rounded px-2 py-1.5 text-sm focus:outline-none"
+                          style={{ background: "var(--background)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && e.currentTarget.value.trim()) {
@@ -1860,7 +1886,7 @@ export default function OverviewPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Receita Atual (R$)
                   </label>
                   <input
@@ -1873,11 +1899,12 @@ export default function OverviewPage() {
                         receita_atual: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Receita Negociação (R$)
                   </label>
                   <input
@@ -1890,23 +1917,24 @@ export default function OverviewPage() {
                         receita_negociacao: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Upsell (R$)
                   </label>
-                  <div className="w-full bg-[#1a1a1a]/50 border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm font-bold" style={{ color: (formData.receita_negociacao - formData.receita_atual) >= 0 ? "#38bdf8" : "#f43f5e" }}>
+                  <div className="w-full rounded-lg px-3 py-2 text-sm font-bold" style={{ background: "color-mix(in srgb, var(--input-bg) 50%, transparent)", border: "1px solid var(--input-border)", color: (formData.receita_negociacao - formData.receita_atual) >= 0 ? "var(--accent-text)" : "var(--danger)" }}>
                     {formatCurrency(formData.receita_negociacao - formData.receita_atual)}
                   </div>
-                  <p className="text-[10px] text-[#525252] mt-1">Calculado automaticamente: Receita Negociação − Receita Atual</p>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>Calculado automaticamente: Receita Negociação − Receita Atual</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Calor
                   </label>
                   <select
@@ -1914,17 +1942,18 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, calor: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   >
                     {calorOptions.map((c) => (
-                      <option key={c} value={c}>
+                      <option key={c} value={c} style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>
                         {c}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Status
                   </label>
                   <select
@@ -1932,17 +1961,18 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   >
                     {statusOptions.map((s) => (
-                      <option key={s} value={s}>
+                      <option key={s} value={s} style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>
                         {s}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Mês Atuação
                   </label>
                   <input
@@ -1951,14 +1981,15 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, mes_atuacao: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Proposta em
                   </label>
                   <input
@@ -1967,11 +1998,12 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, proposta_em: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                     Previsão de Fechamento
                   </label>
                   <input
@@ -1980,13 +2012,14 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, data_fechamento: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                   Observações 1
                 </label>
                 <textarea
@@ -1995,12 +2028,14 @@ export default function OverviewPage() {
                     setFormData({ ...formData, observacoes_1: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none resize-none cursor-pointer"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                  placeholder=""
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>
                   Observações 2
                 </label>
                 <textarea
@@ -2009,7 +2044,9 @@ export default function OverviewPage() {
                     setFormData({ ...formData, observacoes_2: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
+                  className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none resize-none cursor-pointer"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                  placeholder=""
                 />
               </div>
 
@@ -2017,7 +2054,8 @@ export default function OverviewPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                 >
                   Cancelar
                 </button>
@@ -2026,8 +2064,8 @@ export default function OverviewPage() {
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
                   style={{
-                    background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
-                    boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
+                    background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
+                    boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
                   }}
                 >
                   <Save size={14} />
@@ -2042,24 +2080,26 @@ export default function OverviewPage() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-white mb-2">
+          <div className="rounded-xl p-6 max-w-sm w-full" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--foreground)" }}>
               Confirmar exclusão
             </h3>
-            <p className="text-sm text-[#a3a3a3] mb-4">
+            <p className="text-sm mb-4" style={{ color: "var(--muted)" }}>
               Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser
               desfeita.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-colors font-medium cursor-pointer"
+                style={{ background: "var(--danger)" }}
               >
                 <Trash2 size={14} />
                 Excluir

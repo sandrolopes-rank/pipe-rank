@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard,
   LifeBuoy,
@@ -13,8 +13,8 @@ import {
   Sun,
   Moon,
   Palette,
+  Settings,
   ChevronDown,
-  ChevronUp,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,19 @@ export function Sidebar({ userEmail, activeCount }: { userEmail?: string; active
   const router = useRouter();
   const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const { paletteId, mode, setPaletteId, toggleMode, allPalettes } = useTheme();
-  const [showPalettePicker, setShowPalettePicker] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close settings menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setShowSettings(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function handleLogout() {
     const supabase = createClient();
@@ -166,99 +178,117 @@ export function Sidebar({ userEmail, activeCount }: { userEmail?: string; active
         })}
       </nav>
 
-      {/* Theme Controls */}
-      <div className="px-3 py-3 space-y-2" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
-        {/* Dark/Light Toggle */}
-        <button
-          onClick={toggleMode}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all cursor-pointer"
-          style={{
-            background: "var(--card-bg)",
-            border: "1px solid var(--card-border)",
-            color: "var(--foreground)",
-          }}
-        >
-          {mode === "dark" ? <Sun size={13} /> : <Moon size={13} />}
-          <span>{mode === "dark" ? "Modo Claro" : "Modo Escuro"}</span>
-        </button>
-
-        {/* Palette Picker */}
+      {/* User info + Settings */}
+      <div className="px-3 py-3" style={{ borderTop: "1px solid var(--sidebar-border)" }} ref={settingsRef}>
         <div className="relative">
+          {/* User button - clickable to open settings */}
           <button
-            onClick={() => setShowPalettePicker(!showPalettePicker)}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs transition-all cursor-pointer"
-            style={{
-              background: "var(--card-bg)",
-              border: "1px solid var(--card-border)",
-              color: "var(--foreground)",
-            }}
+            onClick={() => setShowSettings(!showSettings)}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg transition-all cursor-pointer hover:opacity-80"
+            style={{ background: showSettings ? "var(--nav-active-bg)" : "transparent" }}
           >
-            <Palette size={13} style={{ color: "var(--accent-text)" }} />
-            <span className="flex-1 text-left">
-              {allPalettes.find(p => p.id === paletteId)?.emoji} {allPalettes.find(p => p.id === paletteId)?.name}
-            </span>
-            {showPalettePicker ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+              style={{
+                background: `linear-gradient(135deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
+              }}
+            >
+              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>
+                {userEmail ? userEmail.split("@")[0] : "Usuário"}
+              </p>
+              <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{userEmail || ""}</p>
+            </div>
+            <ChevronDown
+              size={12}
+              style={{
+                color: "var(--muted)",
+                transform: showSettings ? "rotate(180deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+              }}
+            />
           </button>
 
-          {showPalettePicker && (
+          {/* Settings dropdown */}
+          {showSettings && (
             <div
-              className="absolute bottom-full left-0 right-0 mb-2 rounded-lg overflow-hidden shadow-xl max-h-60 overflow-y-auto z-50"
+              className="absolute bottom-full left-0 right-0 mb-2 rounded-xl overflow-hidden shadow-2xl z-50"
               style={{
                 background: "var(--card-bg)",
                 border: "1px solid var(--card-border)",
               }}
             >
-              {allPalettes.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    setPaletteId(p.id);
-                    setShowPalettePicker(false);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs transition-all cursor-pointer hover:opacity-80"
-                  style={{
-                    background: p.id === paletteId ? "var(--nav-active-bg)" : "transparent",
-                    color: "var(--foreground)",
-                    borderLeft: p.id === paletteId ? "2px solid var(--accent)" : "2px solid transparent",
-                  }}
+              {/* Dark/Light Toggle */}
+              <button
+                onClick={() => {
+                  toggleMode();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-xs transition-all cursor-pointer hover:opacity-80"
+                style={{
+                  borderBottom: "1px solid var(--card-border)",
+                  color: "var(--foreground)",
+                }}
+              >
+                {mode === "dark" ? <Sun size={14} style={{ color: "var(--accent-text)" }} /> : <Moon size={14} style={{ color: "var(--accent-text)" }} />}
+                <span className="flex-1 text-left">{mode === "dark" ? "Modo Claro" : "Modo Escuro"}</span>
+                <span
+                  className="text-[9px] px-2 py-0.5 rounded-full"
+                  style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)" }}
                 >
-                  <span
-                    className="w-4 h-4 rounded-full flex-shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${p.dark.accentGradientFrom}, ${p.dark.accentGradientTo})` }}
-                  />
-                  <span>{p.emoji} {p.name}</span>
-                </button>
-              ))}
+                  {mode === "dark" ? "DARK" : "LIGHT"}
+                </span>
+              </button>
+
+              {/* Palette section header */}
+              <div className="px-4 pt-3 pb-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: "var(--muted)" }}>
+                  <Palette size={10} /> Paleta de Cores
+                </span>
+              </div>
+
+              {/* Palette grid */}
+              <div className="px-3 pb-3 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-2 gap-1">
+                  {allPalettes.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setPaletteId(p.id);
+                        setShowSettings(false);
+                      }}
+                      className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer hover:opacity-80"
+                      style={{
+                        background: p.id === paletteId ? "var(--nav-active-bg)" : "transparent",
+                        color: "var(--foreground)",
+                        border: p.id === paletteId ? "1px solid var(--nav-active-border)" : "1px solid transparent",
+                      }}
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ background: `linear-gradient(135deg, ${p.dark.accentGradientFrom}, ${p.dark.accentGradientTo})` }}
+                      />
+                      <span className="truncate">{p.emoji} {p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Logout */}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-xs transition-all cursor-pointer hover:opacity-80"
+                style={{
+                  borderTop: "1px solid var(--card-border)",
+                  color: "var(--danger)",
+                }}
+              >
+                <LogOut size={14} />
+                <span>Sair</span>
+              </button>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* User info */}
-      <div className="px-4 py-4" style={{ borderTop: "1px solid var(--sidebar-border)" }}>
-        <div className="flex items-center gap-3">
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-            style={{
-              background: `linear-gradient(135deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
-            }}
-          >
-            {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>
-              {userEmail ? userEmail.split("@")[0] : "Usuário"}
-            </p>
-            <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{userEmail || ""}</p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="transition-colors cursor-pointer"
-            style={{ color: "var(--muted)" }}
-            title="Sair"
-          >
-            <LogOut size={14} />
-          </button>
         </div>
       </div>
     </aside>
