@@ -18,6 +18,19 @@ export const metadata: Metadata = {
   description: "Gerenciamento de oportunidades comerciais simples, flexível e poderoso.",
 };
 
+const themeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('rank-crm-theme');
+    if (stored) {
+      var theme = JSON.parse(stored);
+      if (theme.paletteId) document.documentElement.setAttribute('data-palette', theme.paletteId);
+      if (theme.mode) document.documentElement.setAttribute('data-theme-mode', theme.mode);
+    }
+  } catch(e) {}
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,6 +44,9 @@ export default function RootLayout({
       data-palette="violet"
       data-theme-mode="light"
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="min-h-full flex flex-col" style={{ background: "var(--background)", color: "var(--foreground)" }}>
         <ThemeProvider>
           {children}
