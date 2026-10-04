@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { useTheme } from "@/lib/theme/ThemeContext";
 import {
   Users,
   Plus,
@@ -37,6 +38,7 @@ interface AuthUser {
 }
 
 export default function UsuariosPage() {
+  const { mode } = useTheme();
   const [userEmail, setUserEmail] = useState<string>("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -239,8 +241,8 @@ export default function UsuariosPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <div className="text-[#525252] text-sm">Carregando...</div>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
+        <div className="text-sm" style={{ color: "var(--muted)" }}>Carregando...</div>
       </div>
     );
   }
@@ -257,19 +259,22 @@ export default function UsuariosPage() {
         <div className="flex items-center gap-3">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.2), rgba(59,130,246,0.15))", border: "1px solid rgba(124,58,237,0.25)" }}
+            style={{
+              background: `linear-gradient(135deg, color-mix(in srgb, var(--accent) 20%, transparent), color-mix(in srgb, var(--accent) 10%, transparent))`,
+              border: `1px solid color-mix(in srgb, var(--accent) 25%, transparent)`,
+            }}
           >
-            <Users size={18} style={{ color: "#a78bfa" }} />
+            <Users size={18} style={{ color: "var(--accent-text)" }} />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-white">Gerenciamento de Usuários</h1>
-            <p className="text-xs text-[#525252]">Acesso restrito ao administrador</p>
+            <h1 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>Gerenciamento de Usuários</h1>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>Acesso restrito ao administrador</p>
           </div>
         </div>
         <button
           onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 cursor-pointer"
-          style={{ background: "linear-gradient(135deg, #7c3aed, #3b82f6)" }}
+          style={{ background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
         >
           <Plus size={14} />
           Novo Usuário
@@ -278,14 +283,14 @@ export default function UsuariosPage() {
 
       {/* Alerts */}
       {error && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "color-mix(in srgb, var(--danger) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)", color: "var(--danger)" }}>
           <AlertTriangle size={14} />
           {error}
           <button onClick={() => setError(null)} className="ml-auto cursor-pointer"><X size={12} /></button>
         </div>
       )}
       {success && (
-        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.3)", color: "#34d399" }}>
+        <div className="mb-4 flex items-center gap-2 px-4 py-3 rounded-lg text-sm" style={{ background: "color-mix(in srgb, var(--success) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 30%, transparent)", color: "var(--success)" }}>
           <CheckCircle size={14} />
           {success}
           <button onClick={() => setSuccess(null)} className="ml-auto cursor-pointer"><X size={12} /></button>
@@ -295,21 +300,21 @@ export default function UsuariosPage() {
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
-          { label: "Total", value: users.length, icon: Users, color: "#a78bfa" },
-          { label: "Ativos", value: activeUsers.length, icon: UserCheck, color: "#34d399" },
-          { label: "Desativados", value: bannedUsers.length, icon: Ban, color: "#f87171" },
-          { label: "Pendentes", value: users.filter((u) => !u.email_confirmed_at).length, icon: UserX, color: "#fbbf24" },
+          { label: "Total", value: users.length, icon: Users, colorVar: "var(--accent-text)" },
+          { label: "Ativos", value: activeUsers.length, icon: UserCheck, colorVar: "var(--success)" },
+          { label: "Desativados", value: bannedUsers.length, icon: Ban, colorVar: "var(--danger)" },
+          { label: "Pendentes", value: users.filter((u) => !u.email_confirmed_at).length, icon: UserX, colorVar: "var(--warning)" },
         ].map((stat) => (
           <div
             key={stat.label}
             className="rounded-xl p-4"
-            style={{ background: "linear-gradient(135deg, rgba(26,26,26,0.8), rgba(17,17,17,0.9))", border: "1px solid #1e1e1e" }}
+            style={{ background: `linear-gradient(135deg, var(--card-bg), var(--background))`, border: "1px solid var(--card-border)" }}
           >
             <div className="flex items-center gap-2 mb-2">
-              <stat.icon size={14} style={{ color: stat.color }} />
-              <span className="text-xs text-[#737373]">{stat.label}</span>
+              <stat.icon size={14} style={{ color: stat.colorVar }} />
+              <span className="text-xs" style={{ color: "var(--muted)" }}>{stat.label}</span>
             </div>
-            <p className="text-2xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
+            <p className="text-2xl font-bold" style={{ color: stat.colorVar }}>{stat.value}</p>
           </div>
         ))}
       </div>
@@ -317,17 +322,17 @@ export default function UsuariosPage() {
       {/* Users Table */}
       <div
         className="rounded-xl overflow-hidden"
-        style={{ background: "linear-gradient(135deg, rgba(26,26,26,0.6), rgba(17,17,17,0.8))", border: "1px solid #1e1e1e" }}
+        style={{ background: `linear-gradient(135deg, var(--card-bg), var(--background))`, border: "1px solid var(--card-border)" }}
       >
         <table className="w-full">
           <thead>
-            <tr style={{ borderBottom: "1px solid #1e1e1e" }}>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Usuário</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Criado em</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Último acesso</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Privilégio</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3]">Ações</th>
+            <tr style={{ borderBottom: "1px solid var(--table-border)" }}>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Usuário</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Status</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Criado em</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Último acesso</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Privilégio</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold" style={{ color: "var(--muted)" }}>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -335,10 +340,10 @@ export default function UsuariosPage() {
               <tr>
                 <td colSpan={6} className="text-center py-12">
                   <div className="flex flex-col items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                      <Users size={20} className="text-[#525252]" />
+                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--input-bg)" }}>
+                      <Users size={20} style={{ color: "var(--muted)" }} />
                     </div>
-                    <p className="text-sm text-[#737373]">Nenhum usuário encontrado</p>
+                    <p className="text-sm" style={{ color: "var(--muted)" }}>Nenhum usuário encontrado</p>
                   </div>
                 </td>
               </tr>
@@ -347,99 +352,60 @@ export default function UsuariosPage() {
                 const isConfirmed = !!user.email_confirmed_at;
                 const isBanned = !!user.banned_until;
                 const userRole = user.role || 'user';
-                const isAdminRole = userRole === 'admin';
-                const isCurrentUser = user.email.toLowerCase() === userEmail.toLowerCase();
-                const displayName = user.username || user.email.split("@")[0];
+                const isAdminUser = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const isCurrentUser = user.email?.toLowerCase() === userEmail.toLowerCase();
+                const displayName = user.username || user.email?.split("@")[0] || "Sem nome";
 
                 return (
                   <tr
                     key={user.id}
-                    className="transition-colors hover:bg-[#1a1a1a]/50"
-                    style={{ borderBottom: "1px solid rgba(30,30,30,0.5)", opacity: isBanned ? 0.6 : 1 }}
+                    className="transition-colors"
+                    style={{ borderBottom: "1px solid var(--table-border)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--table-row-hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                   >
-                    {/* User column */}
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold"
-                          style={{ background: isBanned ? "rgba(248,113,113,0.15)" : "rgba(124,58,237,0.15)", color: isBanned ? "#f87171" : "#a78bfa" }}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)" }}>
                           {displayName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-sm font-medium text-white">{displayName}</span>
-                            {isCurrentUser && <span className="text-[9px] text-[#525252]">(você)</span>}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{displayName}</span>
+                            {isCurrentUser && <span className="text-[9px]" style={{ color: "var(--muted)" }}>(você)</span>}
                           </div>
-                          <span className="text-[10px] text-[#525252]">{user.email}</span>
+                          <span className="text-[10px]" style={{ color: "var(--muted)" }}>{user.email}</span>
                         </div>
                       </div>
                     </td>
-
-                    {/* Status column */}
                     <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        {isBanned ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
-                            style={{ background: "rgba(248,113,113,0.15)", color: "#f87171", border: "1px solid rgba(248,113,113,0.3)" }}>
-                            <Ban size={10} /> Desativado
-                          </span>
-                        ) : isConfirmed ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
-                            style={{ background: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.3)" }}>
-                            <UserCheck size={10} /> Ativo
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit"
-                            style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24", border: "1px solid rgba(251,191,36,0.3)" }}>
-                            <UserX size={10} /> Pendente
-                          </span>
-                        )}
-                      </div>
+                      {isBanned ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--danger) 15%, transparent)", color: "var(--danger)" }}>
+                          <Ban size={10} /> Desativado
+                        </span>
+                      ) : isConfirmed ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--success) 15%, transparent)", color: "var(--success)" }}>
+                          <UserCheck size={10} /> Ativo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--warning) 15%, transparent)", color: "var(--warning)" }}>
+                          <UserX size={10} /> Pendente
+                        </span>
+                      )}
                     </td>
-
-                    {/* Created at */}
-                    <td className="px-4 py-3 text-xs text-[#737373]">
-                      {user.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "—"}
+                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
+                      {new Date(user.created_at).toLocaleDateString("pt-BR")}
                     </td>
-
-                    {/* Last sign in */}
-                    <td className="px-4 py-3 text-xs text-[#737373]">
+                    <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
                       {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}
                     </td>
-
-                    {/* Privilege dropdown */}
                     <td className="px-4 py-3">
-                      <div className="relative inline-block">
-                        <select
-                          value={userRole}
-                          disabled={isCurrentUser}
-                          onChange={(e) => handleSetRole(user.id, e.target.value)}
-                          className="appearance-none text-[10px] font-semibold pl-6 pr-7 py-1 rounded-lg cursor-pointer focus:outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                          style={{
-                            background: isAdminRole
-                              ? "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(124,58,237,0.08))"
-                              : "linear-gradient(135deg, rgba(115,115,115,0.15), rgba(115,115,115,0.08))",
-                            color: isAdminRole ? "#a78bfa" : "#a3a3a3",
-                            border: `1px solid ${isAdminRole ? "rgba(124,58,237,0.3)" : "rgba(115,115,115,0.3)"}`,
-                          }}
-                          title={isCurrentUser ? "Não é possível alterar seu próprio privilégio" : "Alterar privilégio"}
-                        >
-                          <option value="user" style={{ background: "#1a1a1a", color: "#a3a3a3" }}>Usuário</option>
-                          <option value="admin" style={{ background: "#1a1a1a", color: "#a78bfa" }}>Administrador</option>
-                        </select>
-                        <Shield size={10} className="absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }} />
-                        <ChevronDown size={10} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
-                          style={{ color: isAdminRole ? "#a78bfa" : "#737373" }} />
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="px-4 py-3">
-                      {isCurrentUser ? (
-                        <span className="text-[10px] text-[#404040]">—</span>
+                      {isAdminUser ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent-text)" }}>
+                          <Shield size={10} /> Administrador
+                        </span>
                       ) : (
                         <div className="flex items-center gap-1">
-                          {/* Reset Password */}
                           {resetPasswordUser === user.id ? (
                             <div className="flex items-center gap-1">
                               <input
@@ -448,57 +414,73 @@ export default function UsuariosPage() {
                                 onChange={(e) => setResetPasswordValue(e.target.value)}
                                 placeholder="Nova senha"
                                 minLength={6}
-                                className="w-24 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-2 py-1 text-[10px] text-white focus:outline-none focus:border-violet-500/50"
+                                className="w-24 rounded px-2 py-1 text-[10px] focus:outline-none"
+                                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                               />
                               <button
                                 onClick={() => handleResetPassword(user.id)}
                                 disabled={resetSaving}
-                                className="text-[10px] px-2 py-1 rounded text-emerald-400 hover:bg-emerald-500/10 transition-colors cursor-pointer disabled:opacity-50"
+                                className="text-[10px] px-1 py-1 rounded transition-colors cursor-pointer"
+                                style={{ color: "var(--accent-text)" }}
                               >
                                 {resetSaving ? "..." : "OK"}
                               </button>
                               <button
                                 onClick={() => { setResetPasswordUser(null); setResetPasswordValue(""); }}
-                                className="text-[10px] px-1 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                                className="text-[10px] px-1 py-1 rounded transition-colors cursor-pointer"
+                                style={{ color: "var(--muted)" }}
                               >
-                                <X size={10} />
+                                ✕
                               </button>
                             </div>
                           ) : (
-                            <button
-                              onClick={() => { setResetPasswordUser(user.id); setResetPasswordValue(""); setError(null); }}
-                              className="p-1.5 rounded-lg text-[#525252] hover:text-amber-400 hover:bg-amber-500/10 transition-colors cursor-pointer"
-                              title="Redefinir senha"
-                            >
-                              <Lock size={13} />
-                            </button>
+                            <>
+                              <select
+                                value={userRole}
+                                onChange={(e) => handleSetRole(user.id, e.target.value)}
+                                className="rounded px-2 py-1 text-[10px] focus:outline-none cursor-pointer"
+                                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                              >
+                                <option value="user" style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>Usuário</option>
+                                <option value="admin" style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>Admin</option>
+                              </select>
+                              <button
+                                onClick={() => setResetPasswordUser(user.id)}
+                                className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                                style={{ color: "var(--muted)" }}
+                                title="Redefinir senha"
+                              >
+                                <Key size={13} />
+                              </button>
+                            </>
                           )}
-
-                          {/* Toggle Active / Ban */}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {!isAdminUser && (
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleToggleActive(user.id, isBanned)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                              isBanned
-                                ? "text-emerald-400 hover:bg-emerald-500/10"
-                                : "text-[#525252] hover:text-amber-400 hover:bg-amber-500/10"
-                            }`}
-                            title={isBanned ? "Reativar usuário" : "Desativar usuário"}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isBanned ? "" : ""}`}
+                            style={{ color: isBanned ? "var(--success)" : "var(--muted)" }}
+                            title={isBanned ? "Reativar" : "Desativar"}
                           >
-                            {isBanned ? <RotateCcw size={13} /> : <Ban size={13} />}
+                            {isBanned ? <RotateCcw size={13} /> : <Lock size={13} />}
                           </button>
-
-                          {/* Delete */}
                           {deleteConfirm === user.id ? (
                             <div className="flex items-center gap-1">
                               <button
                                 onClick={() => handleDeleteUser(user.id, user.email)}
-                                className="text-[10px] px-2 py-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
+                                style={{ color: "var(--danger)" }}
                               >
                                 Sim
                               </button>
                               <button
                                 onClick={() => setDeleteConfirm(null)}
-                                className="text-[10px] px-2 py-1 rounded text-[#737373] hover:bg-[#1a1a1a] transition-colors cursor-pointer"
+                                className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
+                                style={{ color: "var(--muted)" }}
                               >
                                 Não
                               </button>
@@ -506,7 +488,8 @@ export default function UsuariosPage() {
                           ) : (
                             <button
                               onClick={() => setDeleteConfirm(user.id)}
-                              className="p-1.5 rounded-lg text-[#525252] hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                              style={{ color: "var(--muted)" }}
                               title="Excluir permanentemente"
                             >
                               <Trash2 size={13} />
@@ -528,50 +511,52 @@ export default function UsuariosPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div
             className="w-full max-w-md rounded-2xl shadow-2xl"
-            style={{ background: "linear-gradient(135deg, #1a1a1a, #111111)", border: "1px solid #2a2a2a" }}
+            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
           >
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid #1e1e1e" }}>
+            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
               <div className="flex items-center gap-2">
-                <UserIcon size={16} style={{ color: "#a78bfa" }} />
-                <h2 className="text-sm font-bold text-white">Criar Novo Usuário</h2>
+                <UserIcon size={16} style={{ color: "var(--accent-text)" }} />
+                <h2 className="text-sm font-bold" style={{ color: "var(--foreground)" }}>Criar Novo Usuário</h2>
               </div>
-              <button onClick={() => setShowCreateModal(false)} className="text-[#525252] hover:text-white transition-colors cursor-pointer">
+              <button onClick={() => setShowCreateModal(false)} className="transition-colors cursor-pointer" style={{ color: "var(--muted)" }}>
                 <X size={18} />
               </button>
             </div>
             <form onSubmit={handleCreateUser} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Nome de usuário</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>Nome de usuário</label>
                 <div className="relative">
-                  <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <UserIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }} />
                   <input
                     type="text"
                     value={newUsername}
                     onChange={(e) => setNewUsername(e.target.value)}
                     placeholder="Ex: joao.silva"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                    className="w-full rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
-                <p className="text-[10px] text-[#525252] mt-1">Nome exibido no sistema. Se vazio, usa o prefixo do email.</p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>Nome exibido no sistema. Se vazio, usa o prefixo do email.</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Email</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>Email</label>
                 <div className="relative">
-                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }} />
                   <input
                     type="email"
                     required
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="usuario@rankmyapp.com.br"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                    className="w-full rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">Senha temporária</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>Senha temporária</label>
                 <div className="relative">
-                  <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]" />
+                  <Key size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--muted)" }} />
                   <input
                     type="password"
                     required
@@ -579,13 +564,14 @@ export default function UsuariosPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-violet-500/50"
+                    className="w-full rounded-lg pl-9 pr-3 py-2 text-sm focus:outline-none"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
-                <p className="text-[10px] text-[#525252] mt-1">O usuário deverá alterar a senha após o primeiro acesso</p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>O usuário deverá alterar a senha após o primeiro acesso</p>
               </div>
               {error && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: "color-mix(in srgb, var(--danger) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--danger) 30%, transparent)", color: "var(--danger)" }}>
                   <AlertTriangle size={12} />
                   {error}
                 </div>
@@ -594,7 +580,8 @@ export default function UsuariosPage() {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-lg text-sm text-[#a3a3a3] hover:text-white transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-lg text-sm transition-colors cursor-pointer"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                 >
                   Cancelar
                 </button>
@@ -602,7 +589,7 @@ export default function UsuariosPage() {
                   type="submit"
                   disabled={saving}
                   className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-50 cursor-pointer"
-                  style={{ background: "linear-gradient(135deg, #7c3aed, #3b82f6)" }}
+                  style={{ background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
                 >
                   <Save size={14} />
                   {saving ? "Criando..." : "Criar Usuário"}

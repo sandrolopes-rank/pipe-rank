@@ -689,10 +689,10 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Upsell / Cross Sell Negociado</span>
+              <span className="text-xs" style={{ color: "var(--muted)" }}>Upsell / Cross Sell Negociado</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Upsell: MI, RI, Features | Cross Sell: demais produtos
                 </div>
               </div>
@@ -766,7 +766,7 @@ export default function OverviewPage() {
               <span className="text-xs text-[#737373]">Propostas em Andamento</span>
               <div className="relative group/tip">
                 <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Top 3 produtos por upsell negociado (clique para ver todos)
                 </div>
               </div>
@@ -821,7 +821,7 @@ export default function OverviewPage() {
               <span className="text-xs" style={{ color: "var(--muted)" }}>Mapa de Calor</span>
               <div className="relative group/tip">
                 <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
                   Soma de upsell por temperatura em propostas ativas
                 </div>
               </div>
@@ -847,7 +847,7 @@ export default function OverviewPage() {
                 { pct: (calorFrio / total) * 100, color: "#0ea5e9" },
               ];
               return (
-                <div className="flex h-1.5 rounded-full overflow-hidden mb-3 bg-[#1a1a1a]">
+                <div className="flex h-1.5 rounded-full overflow-hidden mb-3" style={{ background: "var(--input-bg)" }}>
                   {pcts.map((p, i) =>
                     p.pct > 0 ? (
                       <div
@@ -920,14 +920,15 @@ export default function OverviewPage() {
               ))}
             </div>
             {/* Chart type toggle */}
-            <div className="flex bg-[#1a1a1a] rounded-lg p-0.5 border border-[#2a2a2a]">
+            <div className="flex rounded-lg p-0.5" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)" }}>
               <button
                 onClick={() => handleChartTypeChange("bar")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
-                  chartType === "bar"
-                    ? "bg-[#2a2a2a] text-white shadow-sm"
-                    : "text-[#737373] hover:text-white"
-                }`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer"
+                style={{
+                  background: chartType === "bar" ? "var(--nav-active-bg)" : "transparent",
+                  color: chartType === "bar" ? "var(--foreground)" : "var(--muted)",
+                  boxShadow: chartType === "bar" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}
                 title="Gráfico de barras"
               >
                 <BarChart3 size={13} />
@@ -935,11 +936,12 @@ export default function OverviewPage() {
               </button>
               <button
                 onClick={() => handleChartTypeChange("line")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
-                  chartType === "line"
-                    ? "bg-[#2a2a2a] text-white shadow-sm"
-                    : "text-[#737373] hover:text-white"
-                }`}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer"
+                style={{
+                  background: chartType === "line" ? "var(--nav-active-bg)" : "transparent",
+                  color: chartType === "line" ? "var(--foreground)" : "var(--muted)",
+                  boxShadow: chartType === "line" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                }}
                 title="Gráfico de linhas"
               >
                 <TrendingUp size={13} />
@@ -950,14 +952,16 @@ export default function OverviewPage() {
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setChartSlide((prev) => (prev - 1 + chartSlides.length) % chartSlides.length)}
-                className="w-7 h-7 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[#737373] hover:text-white hover:border-[#3a3a3a] transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--muted)" }}
                 title="Anterior"
               >
                 <ChevronLeft size={14} />
               </button>
               <button
                 onClick={() => setChartSlide((prev) => (prev + 1) % chartSlides.length)}
-                className="w-7 h-7 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-[#737373] hover:text-white hover:border-[#3a3a3a] transition-colors cursor-pointer"
+                className="w-7 h-7 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--muted)" }}
                 title="Próximo"
               >
                 <ChevronRight size={14} />
@@ -1046,7 +1050,7 @@ export default function OverviewPage() {
                       <LabelList
                         dataKey="value"
                         position="top"
-                        style={{ fill: "#a3a3a3", fontSize: 10, fontWeight: 500 }}
+                        style={{ fill: "var(--muted)", fontSize: 10, fontWeight: 500 }}
                         formatter={(value: unknown) =>
                           new Intl.NumberFormat("pt-BR", { notation: "compact", compactDisplay: "short" }).format(Number(value ?? 0))
                         }
@@ -1080,30 +1084,30 @@ export default function OverviewPage() {
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "#0f0f0f",
+                        backgroundColor: "var(--card-bg)",
                         border: `1px solid ${currentSlide.color}60`,
                         borderRadius: "10px",
-                        color: "#fff",
+                        color: "var(--foreground)",
                         fontSize: "12px",
-                        boxShadow: `0 8px 24px rgba(0,0,0,0.6)`,
+                        boxShadow: `0 8px 24px rgba(0,0,0,0.2)`,
                       }}
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const item = payload[0].payload as any;
                         return (
                           <div style={{ padding: "10px 14px", minWidth: "180px" }}>
-                            <p style={{ color: "#e5e5e5", marginBottom: 6, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{label}</p>
+                            <p style={{ color: "var(--foreground)", marginBottom: 6, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{label}</p>
                             <p style={{ color: currentSlide.color, fontWeight: 700, marginBottom: 8, fontSize: 14 }}>
                               {formatCurrency(Number(item.value))}
                             </p>
                             {item.count !== undefined && (
-                              <p style={{ color: "#a3a3a3", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
+                              <p style={{ color: "var(--muted)", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
                             )}
                             {item.clients?.length > 0 && (
                               <div style={{ borderTop: `1px solid ${currentSlide.color}30`, paddingTop: 8 }}>
                                 <p style={{ color: currentSlide.color, fontSize: 10, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Clientes ({item.clients.length})</p>
                                 {item.clients.slice(0, 5).map((c: string, i: number) => (
-                                  <p key={i} style={{ color: "#d4d4d4", fontSize: 11, marginBottom: 2 }}>• {c}</p>
+                                  <p key={i} style={{ color: "var(--foreground)", fontSize: 11, marginBottom: 2 }}>• {c}</p>
                                 ))}
                               </div>
                             )}
@@ -1117,13 +1121,13 @@ export default function OverviewPage() {
                       stroke={currentSlide.color}
                       strokeWidth={2.5}
                       fill={`url(#areaGradient-${currentSlide.key})`}
-                      dot={{ r: 4, fill: currentSlide.color, strokeWidth: 2, stroke: "#141414" }}
-                      activeDot={{ r: 6, strokeWidth: 2, stroke: "#141414" }}
+                      dot={{ r: 4, fill: currentSlide.color, strokeWidth: 2, stroke: "var(--card-bg)" }}
+                      activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--card-bg)" }}
                     >
                       <LabelList
                         dataKey="value"
                         position="top"
-                        style={{ fill: "#a3a3a3", fontSize: 10, fontWeight: 500 }}
+                        style={{ fill: "var(--muted)", fontSize: 10, fontWeight: 500 }}
                         formatter={(value: unknown) =>
                           new Intl.NumberFormat("pt-BR", { notation: "compact", compactDisplay: "short" }).format(Number(value ?? 0))
                         }
@@ -1193,16 +1197,16 @@ export default function OverviewPage() {
                         className="inline-block w-2 h-2 rounded-full"
                         style={{ background: statusGradients[status] || "linear-gradient(90deg, #737373, #a3a3a3)" }}
                       />
-                      <span className="text-xs text-[#a3a3a3]">{status}</span>
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>{status}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-[#525252]">{formatCurrency(totalUpsell)}</span>
-                      <span className="text-xs font-medium text-white min-w-[32px] text-right">
+                      <span className="text-xs" style={{ color: "var(--muted)" }}>{formatCurrency(totalUpsell)}</span>
+                      <span className="text-xs font-medium min-w-[32px] text-right" style={{ color: "var(--foreground)" }}>
                         {count} ({pct}%)
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full rounded-full h-1.5 overflow-hidden" style={{ background: "var(--input-bg)" }}>
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -1220,7 +1224,7 @@ export default function OverviewPage() {
 
       
       {/* ===== DIVIDER ===== */}
-      <div className="border-t border-[#1e1e1e] my-2 mb-6" />
+      <div className="border-t my-2 mb-6" style={{ borderColor: "var(--table-border)" }} />
 
       {/* ===== OPORTUNIDADES TABLE SECTION ===== */}
 
@@ -1229,18 +1233,20 @@ export default function OverviewPage() {
         <div className="relative">
           <button
             onClick={() => setShowColumnPicker(!showColumnPicker)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-colors cursor-pointer"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", color: "var(--foreground)" }}
           >
             <Columns3 size={14} />
             Personalizar Colunas
           </button>
           {showColumnPicker && (
-            <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 z-50 min-w-[220px] shadow-xl">
-              <p className="text-xs font-semibold text-white mb-2">Colunas visíveis</p>
+            <div className="absolute right-0 top-full mt-1 rounded-lg p-3 z-50 min-w-[220px] shadow-xl" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: "var(--foreground)" }}>Colunas visíveis</p>
               {Object.entries(columnLabels).map(([key, label]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-2 py-1 cursor-pointer text-xs text-[#a3a3a3] hover:text-white"
+                  className="flex items-center gap-2 py-1 cursor-pointer text-xs"
+                  style={{ color: "var(--muted)" }}
                 >
                   <input
                     type="checkbox"
@@ -1248,7 +1254,8 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setVisibleColumns((prev) => ({ ...prev, [key]: e.target.checked }))
                     }
-                    className="rounded border-[#2a2a2a] bg-[#0a0a0a] accent-blue-500"
+                    className="rounded"
+                    style={{ accentColor: "var(--accent)" }}
                   />
                   {label}
                 </label>
@@ -1263,7 +1270,8 @@ export default function OverviewPage() {
         <div className="relative flex-1 max-w-md">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+            className="absolute left-3 top-1/2 -translate-y-1/2"
+            style={{ color: "var(--muted)" }}
           />
           <input
             type="text"
@@ -1273,7 +1281,8 @@ export default function OverviewPage() {
               setPage(1);
             }}
             placeholder="Buscar oportunidades..."
-            className="w-full bg-[#141414] border border-[#222222] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 transition-colors"
+            className="w-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none transition-colors"
+            style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
           />
         </div>
 
@@ -1333,7 +1342,7 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
 
         <div className="flex-1" />
 
-        <span className="text-xs text-[#525252]">
+        <span className="text-xs" style={{ color: "var(--muted)" }}>
           {filteredOpportunities.length} registros
         </span>
 
@@ -1414,11 +1423,11 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                     className="text-center py-16"
                   >
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                        <Inbox size={20} className="text-[#525252]" />
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--input-bg)" }}>
+                        <Inbox size={20} style={{ color: "var(--muted)" }} />
                       </div>
-                      <p className="text-sm text-[#737373]">Nenhuma oportunidade encontrada</p>
-                      <p className="text-xs text-[#525252]">Tente ajustar os filtros ou criar uma nova oportunidade</p>
+                      <p className="text-sm" style={{ color: "var(--muted)" }}>Nenhuma oportunidade encontrada</p>
+                      <p className="text-xs" style={{ color: "var(--muted)" }}>Tente ajustar os filtros ou criar uma nova oportunidade</p>
                     </div>
                   </td>
                 </tr>
@@ -1450,19 +1459,19 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                       </td>
                     )}
                     {visibleColumns.cliente && (
-                      <td className="px-4 py-3 text-xs text-white font-medium">
+                      <td className="px-4 py-3 text-xs font-medium" style={{ color: "var(--foreground)" }}>
                         {opp.cliente}
                       </td>
                     )}
                     {visibleColumns.produto && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3] max-w-[200px]">
+                      <td className="px-4 py-3 text-xs max-w-[200px]" style={{ color: "var(--muted)" }}>
                         <div className="truncate" title={opp.produto}>
                           {opp.produto}
                         </div>
                       </td>
                     )}
                     {visibleColumns.receita_atual && (
-                      <td className="px-4 py-3 text-xs text-white whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "var(--foreground)" }}>
                         {formatCurrency(opp.receita_atual)}
                       </td>
                     )}
@@ -1502,7 +1511,7 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                       </td>
                     )}
                     {visibleColumns.mes_atuacao && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
                         {opp.mes_atuacao ? (() => {
                           const [year, month] = opp.mes_atuacao.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1514,15 +1523,16 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                            statusColors[opp.status] || "bg-[#2a2a2a] text-[#a3a3a3]"
+                            statusColors[opp.status] || ""
                           }`}
+                          style={!statusColors[opp.status] ? { background: "var(--input-bg)", color: "var(--muted)" } : undefined}
                         >
                           {opp.status}
                         </span>
                       </td>
                     )}
                     {visibleColumns.proposta_em && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
                         {opp.proposta_em ? (() => {
                           const [year, month] = opp.proposta_em.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1531,7 +1541,7 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                       </td>
                     )}
                     {visibleColumns.data_fechamento && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
                         {opp.data_fechamento ? (() => {
                           const [year, month] = opp.data_fechamento.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1540,12 +1550,12 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                       </td>
                     )}
                     {visibleColumns.observacoes_1 && (
-                      <td className="px-4 py-3 text-xs text-[#737373] max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-xs max-w-[200px] truncate" style={{ color: "var(--muted)" }}>
                         {opp.observacoes_1}
                       </td>
                     )}
                     {visibleColumns.observacoes_2 && (
-                      <td className="px-4 py-3 text-xs text-[#737373] max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-xs max-w-[200px] truncate" style={{ color: "var(--muted)" }}>
                         {opp.observacoes_2}
                       </td>
                     )}
@@ -1634,35 +1644,39 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
                 ))}
               </select>
             </div>
-            <span className="text-xs text-[#525252]">
+            <span className="text-xs" style={{ color: "var(--muted)" }}>
               Página {page} de {totalPages}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(1)}
                 disabled={page === 1}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 disabled:opacity-30 transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <ChevronsLeft size={16} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 disabled:opacity-30 transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 disabled:opacity-30 transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <ChevronRight size={16} />
               </button>
               <button
                 onClick={() => setPage(totalPages)}
                 disabled={page === totalPages}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 disabled:opacity-30 transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
               >
                 <ChevronsRight size={16} />
               </button>
