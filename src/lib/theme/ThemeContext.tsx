@@ -29,9 +29,9 @@ export function useTheme() {
 
 function applyThemeToDOM(palette: Palette, mode: ThemeMode) {
   const root = document.documentElement;
-  // Use only data attributes — CSS selectors [data-palette][data-theme-mode] handle all variables
   root.setAttribute("data-palette", palette.id);
   root.setAttribute("data-theme-mode", mode);
+  root.style.colorScheme = mode;
 }
 
 async function saveThemeToSupabase(paletteId: string, mode: ThemeMode) {
