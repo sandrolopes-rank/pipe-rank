@@ -70,8 +70,8 @@ export default function ResetPasswordPage() {
           <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Senha atualizada!</h1>
-          <p className="text-sm text-[#a3a3a3]">
+          <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2">Senha atualizada!</h1>
+          <p className="text-sm text-[var(--muted)]">
             Sua senha foi redefinida com sucesso. Redirecionando...
           </p>
         </div>
@@ -102,7 +102,7 @@ export default function ResetPasswordPage() {
               boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
             }}
           >
-            <KeyRound size={28} className="text-white" />
+            <KeyRound size={28} className="text-[var(--foreground)]" />
           </div>
           <h1
             className="text-2xl font-bold"
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
           >
             Rank CRM
           </h1>
-          <p className="text-sm text-[#737373] mt-1">Redefinir Senha</p>
+          <p className="text-sm text-[var(--muted)] mt-1">Redefinir Senha</p>
         </div>
 
         <div
@@ -125,8 +125,8 @@ export default function ResetPasswordPage() {
             boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
           }}
         >
-          <h2 className="text-lg font-semibold text-white mb-1 relative">Nova Senha</h2>
-          <p className="text-xs text-[#737373] mb-6 relative">
+          <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1 relative">Nova Senha</h2>
+          <p className="text-xs text-[var(--muted)] mb-6 relative">
             Crie uma nova senha segura para sua conta.
           </p>
 
@@ -144,13 +144,13 @@ export default function ResetPasswordPage() {
 
           <form onSubmit={handleResetPassword} className="space-y-4 relative">
             <div>
-              <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                 Nova Senha
               </label>
               <div className="relative">
                 <Lock
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
                 />
                 <input
                   type="password"
@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#525252] focus:outline-none transition-all"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none transition-all"
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "rgba(124,58,237,0.5)";
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
@@ -173,13 +173,13 @@ export default function ResetPasswordPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                 Confirmar Senha
               </label>
               <div className="relative">
                 <Lock
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
                 />
                 <input
                   type="password"
@@ -188,7 +188,7 @@ export default function ResetPasswordPage() {
                   placeholder="••••••••"
                   required
                   minLength={6}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#525252] focus:outline-none transition-all"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none transition-all"
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "rgba(124,58,237,0.5)";
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
@@ -204,7 +204,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
+              className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
               style={{
                 background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
                 boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
@@ -222,7 +222,7 @@ export default function ResetPasswordPage() {
           </form>
         </div>
 
-        <p className="text-center text-[10px] text-[#404040] mt-6">
+        <p className="text-center text-[10px] text-[var(--muted)] mt-6">
           Feito pela equipe RankMyApp
         </p>
       </div>

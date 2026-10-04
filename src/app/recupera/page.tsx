@@ -620,10 +620,10 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Upsell / Cross Sell Negociado</span>
+              <span className="text-xs text-[var(--muted)]">Upsell / Cross Sell Negociado</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} className="text-[var(--muted)] cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-xs text-[var(--muted)] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
                   Upsell: MI, RI, Features | Cross Sell: demais produtos
                 </div>
               </div>
@@ -640,7 +640,7 @@ export default function OverviewPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#a3a3a3]">Upsell</span>
+              <span className="text-xs text-[var(--muted)]">Upsell</span>
               <p
                 className="text-xl font-bold tracking-tight"
                 style={{
@@ -653,7 +653,7 @@ export default function OverviewPage() {
               </p>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-[#a3a3a3]">Cross Sell</span>
+              <span className="text-xs text-[var(--muted)]">Cross Sell</span>
               <p
                 className="text-xl font-bold tracking-tight"
                 style={{
@@ -674,7 +674,7 @@ export default function OverviewPage() {
               >
                 {upsellTrend > 0 ? "↑" : "↓"} {Math.abs(upsellTrend).toFixed(1)}%
               </span>
-              <span className="text-[10px] text-[#525252]">vs mês anterior</span>
+              <span className="text-[10px] text-[var(--muted)]">vs mês anterior</span>
             </div>
           )}
         </div>
@@ -694,10 +694,10 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Propostas em Andamento</span>
+              <span className="text-xs text-[var(--muted)]">Propostas em Andamento</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} className="text-[var(--muted)] cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-xs text-[var(--muted)] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
                   Top 3 produtos por upsell negociado (clique para ver todos)
                 </div>
               </div>
@@ -726,12 +726,12 @@ export default function OverviewPage() {
             {topProdutos.length > 0 ? (
               topProdutos.map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-[#a3a3a3] truncate max-w-[120px]">{item.produto}</span>
+                  <span className="text-[var(--muted)] truncate max-w-[120px]">{item.produto}</span>
                   <span className="text-amber-400 font-medium">{formatCurrency(item.value)}</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#525252]">Nenhum produto ativo</p>
+              <p className="text-xs text-[var(--muted)]">Nenhum produto ativo</p>
             )}
           </div>
         </div>
@@ -749,10 +749,10 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <span className="text-xs text-[#737373]">Mapa de Calor</span>
+              <span className="text-xs text-[var(--muted)]">Mapa de Calor</span>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} className="text-[var(--muted)] cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-xs text-[var(--muted)] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
                   Soma de upsell por temperatura em propostas ativas
                 </div>
               </div>
@@ -778,7 +778,7 @@ export default function OverviewPage() {
                 { pct: (calorFrio / total) * 100, color: "#0ea5e9" },
               ];
               return (
-                <div className="flex h-1.5 rounded-full overflow-hidden mb-3 bg-[#1a1a1a]">
+                <div className="flex h-1.5 rounded-full overflow-hidden mb-3 bg-[var(--input-bg)]">
                   {pcts.map((p, i) =>
                     p.pct > 0 ? (
                       <div
@@ -805,7 +805,7 @@ export default function OverviewPage() {
               >
                 <div className="flex items-center gap-2">
                   <row.icon size={12} style={{ color: row.color }} />
-                  <span className="text-xs text-[#a3a3a3]">{row.label}</span>
+                  <span className="text-xs text-[var(--muted)]">{row.label}</span>
                 </div>
                 <span className="text-sm font-bold" style={{ color: row.color }}>
                   {formatCurrency(row.value)}
@@ -830,20 +830,20 @@ export default function OverviewPage() {
         />
         <div className="relative flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold text-white">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">
               Upsell por fechamento previsto
             </h3>
-            <p className="text-xs text-[#737373]">Evolução mensal do pipeline</p>
+            <p className="text-xs text-[var(--muted)]">Evolução mensal do pipeline</p>
           </div>
           <div className="flex items-center gap-3">
             {/* Chart type toggle */}
-            <div className="flex bg-[#1a1a1a] rounded-lg p-0.5 border border-[#2a2a2a]">
+            <div className="flex bg-[var(--input-bg)] rounded-lg p-0.5 border border-[var(--input-border)]">
               <button
                 onClick={() => handleChartTypeChange("bar")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
                   chartType === "bar"
-                    ? "bg-[#2a2a2a] text-white shadow-sm"
-                    : "text-[#737373] hover:text-white"
+                    ? "bg-[var(--input-border)] text-[var(--foreground)] shadow-sm"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
                 title="Gráfico de barras"
               >
@@ -854,8 +854,8 @@ export default function OverviewPage() {
                 onClick={() => handleChartTypeChange("line")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md transition-colors cursor-pointer ${
                   chartType === "line"
-                    ? "bg-[#2a2a2a] text-white shadow-sm"
-                    : "text-[#737373] hover:text-white"
+                    ? "bg-[var(--input-border)] text-[var(--foreground)] shadow-sm"
+                    : "text-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
                 title="Gráfico de linhas"
               >
@@ -865,8 +865,8 @@ export default function OverviewPage() {
             </div>
             {/* Tooltip explicativo do gráfico */}
             <div className="relative group/tip">
-              <Info size={14} className="text-[#525252] cursor-help" />
-              <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+              <Info size={14} className="text-[var(--muted)] cursor-help" />
+              <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-xs text-[var(--muted)] w-64 opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
                 Soma de upsell por mês de previsão de fechamento. Barras azuis indicam saldo positivo; vermelhas, negativo. Exclui Proposta Perdida e Assinado.
               </div>
             </div>
@@ -1030,7 +1030,7 @@ export default function OverviewPage() {
               )}
             </ResponsiveContainer>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-[#525252] gap-2">
+            <div className="h-full flex flex-col items-center justify-center text-[var(--muted)] gap-2">
               <BarChart3 size={32} className="opacity-30" />
               <span className="text-sm">{loading ? "Carregando dados..." : "Sem dados para exibir"}</span>
             </div>
@@ -1054,15 +1054,15 @@ export default function OverviewPage() {
           />
           <div className="relative flex items-center justify-between mb-4">
             <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-semibold text-white">Distribuição por Status</h3>
+              <h3 className="text-sm font-semibold text-[var(--foreground)]">Distribuição por Status</h3>
               <div className="relative group/tip">
-                <Info size={12} className="text-[#525252] cursor-help" />
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg text-xs text-[#a3a3a3] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
+                <Info size={12} className="text-[var(--muted)] cursor-help" />
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg text-xs text-[var(--muted)] whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg">
                   Quantidade de propostas por estágio no pipeline completo
                 </div>
               </div>
             </div>
-            <span className="text-xs text-[#525252]">{opportunities.length} oportunidades</span>
+            <span className="text-xs text-[var(--muted)]">{opportunities.length} oportunidades</span>
           </div>
           <div className="relative space-y-3">
             {Object.entries(statusColorsDashboard).map(([status, classes]) => {
@@ -1094,16 +1094,16 @@ export default function OverviewPage() {
                         className="inline-block w-2 h-2 rounded-full"
                         style={{ background: statusGradients[status] || "linear-gradient(90deg, #737373, #a3a3a3)" }}
                       />
-                      <span className="text-xs text-[#a3a3a3]">{status}</span>
+                      <span className="text-xs text-[var(--muted)]">{status}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-[#525252]">{formatCurrency(totalUpsell)}</span>
-                      <span className="text-xs font-medium text-white min-w-[32px] text-right">
+                      <span className="text-xs text-[var(--muted)]">{formatCurrency(totalUpsell)}</span>
+                      <span className="text-xs font-medium text-[var(--foreground)] min-w-[32px] text-right">
                         {count} ({pct}%)
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden">
+                  <div className="w-full bg-[var(--input-bg)] rounded-full h-1.5 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{
@@ -1121,7 +1121,7 @@ export default function OverviewPage() {
 
       
       {/* ===== DIVIDER ===== */}
-      <div className="border-t border-[#1e1e1e] my-2 mb-6" />
+      <div className="border-t border-[var(--table-border)] my-2 mb-6" />
 
       {/* ===== OPORTUNIDADES TABLE SECTION ===== */}
 
@@ -1130,18 +1130,18 @@ export default function OverviewPage() {
         <div className="relative">
           <button
             onClick={() => setShowColumnPicker(!showColumnPicker)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--foreground)] bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg transition-colors cursor-pointer"
           >
             <Columns3 size={14} />
             Personalizar Colunas
           </button>
           {showColumnPicker && (
-            <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-3 z-50 min-w-[220px] shadow-xl">
-              <p className="text-xs font-semibold text-white mb-2">Colunas visíveis</p>
+            <div className="absolute right-0 top-full mt-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg p-3 z-50 min-w-[220px] shadow-xl">
+              <p className="text-xs font-semibold text-[var(--foreground)] mb-2">Colunas visíveis</p>
               {Object.entries(columnLabels).map(([key, label]) => (
                 <label
                   key={key}
-                  className="flex items-center gap-2 py-1 cursor-pointer text-xs text-[#a3a3a3] hover:text-white"
+                  className="flex items-center gap-2 py-1 cursor-pointer text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
                 >
                   <input
                     type="checkbox"
@@ -1149,7 +1149,7 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setVisibleColumns((prev) => ({ ...prev, [key]: e.target.checked }))
                     }
-                    className="rounded border-[#2a2a2a] bg-[#0a0a0a] accent-blue-500"
+                    className="rounded border-[var(--input-border)] bg-[var(--background)] accent-blue-500"
                   />
                   {label}
                 </label>
@@ -1164,7 +1164,7 @@ export default function OverviewPage() {
         <div className="relative flex-1 max-w-md">
           <Search
             size={16}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
           />
           <input
             type="text"
@@ -1174,7 +1174,7 @@ export default function OverviewPage() {
               setPage(1);
             }}
             placeholder="Buscar oportunidades..."
-            className="w-full bg-[#141414] border border-[#222222] rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 transition-colors"
+            className="w-full bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg pl-10 pr-4 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:border-blue-500/50 transition-colors"
           />
         </div>
 
@@ -1185,7 +1185,7 @@ export default function OverviewPage() {
             setFilterStatus(e.target.value);
             setPage(1);
           }}
-          className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+          className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg px-3 py-2 text-xs text-[var(--muted)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
         >
           <option value="">Todos os Status</option>
           {statusOptions.map((s) => (
@@ -1201,7 +1201,7 @@ export default function OverviewPage() {
             setFilterCalor(e.target.value);
             setPage(1);
           }}
-          className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+          className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg px-3 py-2 text-xs text-[var(--muted)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
         >
           <option value="">Todo Calor</option>
           {calorOptions.map((c) => (
@@ -1218,7 +1218,7 @@ export default function OverviewPage() {
               setFilterResponsavel(e.target.value);
               setPage(1);
             }}
-            className="bg-[#141414] border border-[#222222] rounded-lg px-3 py-2 text-xs text-[#a3a3a3] focus:outline-none focus:border-blue-500/50 cursor-pointer"
+            className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg px-3 py-2 text-xs text-[var(--muted)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
           >
             <option value="">Todos Responsáveis</option>
             {uniqueResponsaveis.map((r) => (
@@ -1231,13 +1231,13 @@ export default function OverviewPage() {
 
         <div className="flex-1" />
 
-        <span className="text-xs text-[#525252]">
+        <span className="text-xs text-[var(--muted)]">
           {filteredOpportunities.length} registros
         </span>
 
         <button
           onClick={handleExport}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs text-[#a3a3a3] hover:text-white bg-[#141414] border border-[#222222] rounded-lg transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs text-[var(--muted)] hover:text-[var(--foreground)] bg-[var(--card-bg)] border border-[var(--card-border)] rounded-lg transition-colors cursor-pointer"
         >
           <Download size={14} />
           Exportar
@@ -1245,7 +1245,7 @@ export default function OverviewPage() {
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs text-[var(--foreground)] rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
           style={{
             background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
             boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
@@ -1267,13 +1267,13 @@ export default function OverviewPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#1e1e1e]">
+              <tr className="border-b border-[var(--table-border)]">
                 {Object.entries(columnLabels)
                   .filter(([key]) => visibleColumns[key])
                   .map(([key, label]) => (
                     <th
                       key={key}
-                      className="text-left px-4 py-3 text-xs font-semibold text-[#a3a3a3] whitespace-nowrap cursor-pointer hover:text-white transition-colors select-none"
+                      className="text-left px-4 py-3 text-xs font-semibold text-[var(--muted)] whitespace-nowrap cursor-pointer hover:text-[var(--foreground)] transition-colors select-none"
                       onClick={() => handleSort(key)}
                     >
                       <div className="flex items-center gap-1">
@@ -1285,7 +1285,7 @@ export default function OverviewPage() {
                             <ArrowDown size={12} className="text-violet-400" />
                           )
                         ) : (
-                          <ArrowUpDown size={12} className="text-[#525252] opacity-0 group-hover:opacity-100" />
+                          <ArrowUpDown size={12} className="text-[var(--muted)] opacity-0 group-hover:opacity-100" />
                         )}
                       </div>
                     </th>
@@ -1298,7 +1298,7 @@ export default function OverviewPage() {
                 <tr>
                   <td
                     colSpan={Object.values(visibleColumns).filter(Boolean).length + 1}
-                    className="text-center py-12 text-[#525252]"
+                    className="text-center py-12 text-[var(--muted)]"
                   >
                     Carregando...
                   </td>
@@ -1310,11 +1310,11 @@ export default function OverviewPage() {
                     className="text-center py-16"
                   >
                     <div className="flex flex-col items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-[#1a1a1a] flex items-center justify-center">
-                        <Inbox size={20} className="text-[#525252]" />
+                      <div className="w-12 h-12 rounded-full bg-[var(--input-bg)] flex items-center justify-center">
+                        <Inbox size={20} className="text-[var(--muted)]" />
                       </div>
-                      <p className="text-sm text-[#737373]">Nenhuma oportunidade encontrada</p>
-                      <p className="text-xs text-[#525252]">Tente ajustar os filtros ou criar uma nova oportunidade</p>
+                      <p className="text-sm text-[var(--muted)]">Nenhuma oportunidade encontrada</p>
+                      <p className="text-xs text-[var(--muted)]">Tente ajustar os filtros ou criar uma nova oportunidade</p>
                     </div>
                   </td>
                 </tr>
@@ -1328,34 +1328,34 @@ export default function OverviewPage() {
                       if (target.closest('button') || target.closest('[data-menu]')) return;
                       openEditModal(opp);
                     }}
-                    className="border-b border-[#1e1e1e]/50 hover:bg-[#1a1a1a]/50 transition-colors cursor-pointer"
+                    className="border-b border-[var(--table-border)]/50 hover:bg-[var(--input-bg)]/50 transition-colors cursor-pointer"
                   >
                     {visibleColumns.responsavel && (
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[#2a2a2a] flex items-center justify-center text-[10px] font-bold text-[#a3a3a3]">
+                          <div className="w-6 h-6 rounded-full bg-[var(--input-border)] flex items-center justify-center text-[10px] font-bold text-[var(--muted)]">
                             {opp.responsavel?.charAt(0).toUpperCase() || "?"}
                           </div>
-                          <span className="text-xs text-[#a3a3a3] truncate max-w-[80px]">
+                          <span className="text-xs text-[var(--muted)] truncate max-w-[80px]">
                             {opp.responsavel}
                           </span>
                         </div>
                       </td>
                     )}
                     {visibleColumns.cliente && (
-                      <td className="px-4 py-3 text-xs text-white font-medium">
+                      <td className="px-4 py-3 text-xs text-[var(--foreground)] font-medium">
                         {opp.cliente}
                       </td>
                     )}
                     {visibleColumns.produto && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3] max-w-[200px]">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)] max-w-[200px]">
                         <div className="truncate" title={opp.produto}>
                           {opp.produto}
                         </div>
                       </td>
                     )}
                     {visibleColumns.receita_atual && (
-                      <td className="px-4 py-3 text-xs text-white whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-[var(--foreground)] whitespace-nowrap">
                         {formatCurrency(opp.receita_atual)}
                       </td>
                     )}
@@ -1395,7 +1395,7 @@ export default function OverviewPage() {
                       </td>
                     )}
                     {visibleColumns.mes_atuacao && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)]">
                         {opp.mes_atuacao ? (() => {
                           const [year, month] = opp.mes_atuacao.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1407,7 +1407,7 @@ export default function OverviewPage() {
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                            statusColors[opp.status] || "bg-[#2a2a2a] text-[#a3a3a3]"
+                            statusColors[opp.status] || "bg-[var(--input-border)] text-[var(--muted)]"
                           }`}
                         >
                           {opp.status}
@@ -1415,7 +1415,7 @@ export default function OverviewPage() {
                       </td>
                     )}
                     {visibleColumns.proposta_em && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)]">
                         {opp.proposta_em ? (() => {
                           const [year, month] = opp.proposta_em.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1424,7 +1424,7 @@ export default function OverviewPage() {
                       </td>
                     )}
                     {visibleColumns.data_fechamento && (
-                      <td className="px-4 py-3 text-xs text-[#a3a3a3]">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)]">
                         {opp.data_fechamento ? (() => {
                           const [year, month] = opp.data_fechamento.split("-");
                           const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -1433,12 +1433,12 @@ export default function OverviewPage() {
                       </td>
                     )}
                     {visibleColumns.observacoes_1 && (
-                      <td className="px-4 py-3 text-xs text-[#737373] max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)] max-w-[200px] truncate">
                         {opp.observacoes_1}
                       </td>
                     )}
                     {visibleColumns.observacoes_2 && (
-                      <td className="px-4 py-3 text-xs text-[#737373] max-w-[200px] truncate">
+                      <td className="px-4 py-3 text-xs text-[var(--muted)] max-w-[200px] truncate">
                         {opp.observacoes_2}
                       </td>
                     )}
@@ -1465,18 +1465,18 @@ export default function OverviewPage() {
                           onClick={() =>
                             setOpenMenu(openMenu === opp.id ? null : opp.id)
                           }
-                          className="p-1 text-[#525252] hover:text-white transition-colors cursor-pointer"
+                          className="p-1 text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
                         >
                           <MoreHorizontal size={16} />
                         </button>
                         {openMenu === opp.id && (
-                          <div className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg py-1 z-50 min-w-[140px] shadow-xl">
+                          <div className="absolute right-0 top-full mt-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg py-1 z-50 min-w-[140px] shadow-xl">
                             <button
                               onClick={() => {
                                 openEditModal(opp);
                                 setOpenMenu(null);
                               }}
-                              className="w-full text-left px-3 py-1.5 text-xs text-[#a3a3a3] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer"
+                              className="w-full text-left px-3 py-1.5 text-xs text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)] transition-colors cursor-pointer"
                             >
                               Editar
                             </button>
@@ -1485,7 +1485,7 @@ export default function OverviewPage() {
                                 setDeleteConfirm(opp.id);
                                 setOpenMenu(null);
                               }}
-                              className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-[#222222] transition-colors cursor-pointer"
+                              className="w-full text-left px-3 py-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-[var(--card-border)] transition-colors cursor-pointer"
                             >
                               Excluir
                             </button>
@@ -1501,20 +1501,20 @@ export default function OverviewPage() {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#1e1e1e]">
-          <span className="text-xs text-[#525252]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[var(--table-border)]">
+          <span className="text-xs text-[var(--muted)]">
             0 de {filteredOpportunities.length} linha(s) selecionada(s).
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#525252]">Linhas por página</span>
+              <span className="text-xs text-[var(--muted)]">Linhas por página</span>
               <select
                 value={perPage}
                 onChange={(e) => {
                   setPerPage(Number(e.target.value));
                   setPage(1);
                 }}
-                className="bg-[#1a1a1a] border border-[#2a2a2a] rounded px-2 py-1 text-xs text-white cursor-pointer"
+                className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-xs text-[var(--foreground)] cursor-pointer"
               >
                 {[10, 25, 50, 100].map((n) => (
                   <option key={n} value={n}>
@@ -1523,35 +1523,35 @@ export default function OverviewPage() {
                 ))}
               </select>
             </div>
-            <span className="text-xs text-[#525252]">
+            <span className="text-xs text-[var(--muted)]">
               Página {page} de {totalPages}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setPage(1)}
                 disabled={page === 1}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors cursor-pointer"
               >
                 <ChevronsLeft size={16} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors cursor-pointer"
               >
                 <ChevronRight size={16} />
               </button>
               <button
                 onClick={() => setPage(totalPages)}
                 disabled={page === totalPages}
-                className="p-1 text-[#525252] hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
+                className="p-1 text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-30 transition-colors cursor-pointer"
               >
                 <ChevronsRight size={16} />
               </button>
@@ -1563,20 +1563,20 @@ export default function OverviewPage() {
       {/* Propostas em Andamento Modal */}
       {showPropostasModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e1e]">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--table-border)]">
+              <h2 className="text-lg font-semibold text-[var(--foreground)]">
                 Produtos Negociados - Relação Completa
               </h2>
               <button
                 onClick={() => setShowPropostasModal(false)}
-                className="text-[#525252] hover:text-white transition-colors cursor-pointer"
+                className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
             <div className="p-6">
-              <p className="text-xs text-[#737373] mb-4">
+              <p className="text-xs text-[var(--muted)] mb-4">
                 Excluindo status Fechado e Perdido • {allProdutos.length} produto(s)
               </p>
               {allProdutos.length > 0 ? (
@@ -1584,9 +1584,9 @@ export default function OverviewPage() {
                   {allProdutos.map((item, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between px-4 py-3 rounded-lg bg-[#1a1a1a] border border-[#222222]"
+                      className="flex items-center justify-between px-4 py-3 rounded-lg bg-[var(--input-bg)] border border-[var(--card-border)]"
                     >
-                      <span className="text-sm text-white font-medium">{item.produto}</span>
+                      <span className="text-sm text-[var(--foreground)] font-medium">{item.produto}</span>
                       <span className="text-sm text-amber-400 font-bold">
                         {formatCurrency(item.value)}
                       </span>
@@ -1594,7 +1594,7 @@ export default function OverviewPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-[#525252] text-center py-8">
+                <p className="text-sm text-[var(--muted)] text-center py-8">
                   Nenhum produto ativo no momento
                 </p>
               )}
@@ -1606,14 +1606,14 @@ export default function OverviewPage() {
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#1e1e1e]">
-              <h2 className="text-lg font-semibold text-white">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--table-border)]">
+              <h2 className="text-lg font-semibold text-[var(--foreground)]">
                 {editingOpportunity ? "Editar Oportunidade" : "Nova Oportunidade"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-[#525252] hover:text-white transition-colors cursor-pointer"
+                className="text-[var(--muted)] hover:text-[var(--foreground)] transition-colors cursor-pointer"
               >
                 <X size={20} />
               </button>
@@ -1622,7 +1622,7 @@ export default function OverviewPage() {
               {/* Admin: assign owner */}
               {isAdmin && (
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Atribuir para (Admin)
                   </label>
                   <select
@@ -1630,7 +1630,7 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, owner_email: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   >
                     <option value="">Selecione um usuário...</option>
                     {availableUsers.map((u) => (
@@ -1639,7 +1639,7 @@ export default function OverviewPage() {
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-[#525252] mt-1">
+                  <p className="text-[10px] text-[var(--muted)] mt-1">
                     Apenas usuários com acesso ao sistema aparecem aqui
                   </p>
                 </div>
@@ -1647,7 +1647,7 @@ export default function OverviewPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Responsável
                   </label>
                   <input
@@ -1657,11 +1657,11 @@ export default function OverviewPage() {
                       setFormData({ ...formData, responsavel: e.target.value })
                     }
                     required
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Cliente
                   </label>
                   <input
@@ -1671,18 +1671,18 @@ export default function OverviewPage() {
                       setFormData({ ...formData, cliente: e.target.value })
                     }
                     required
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                   Produto
                 </label>
                 <div className="relative">
                   <div
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white cursor-pointer min-h-[38px] flex items-center flex-wrap gap-1"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] cursor-pointer min-h-[38px] flex items-center flex-wrap gap-1"
                     onClick={() => setShowProdutoDropdown(!showProdutoDropdown)}
                   >
                     {formData.produto ? (
@@ -1699,24 +1699,24 @@ export default function OverviewPage() {
                               const items = formData.produto.split(", ").filter((_, i) => i !== idx);
                               setFormData({ ...formData, produto: items.join(", ") });
                             }}
-                            className="hover:text-white"
+                            className="hover:text-[var(--foreground)]"
                           >
                             ×
                           </button>
                         </span>
                       ))
                     ) : (
-                      <span className="text-[#525252]">Selecione produtos...</span>
+                      <span className="text-[var(--muted)]">Selecione produtos...</span>
                     )}
                   </div>
                   {showProdutoDropdown && (
-                    <div className="absolute z-50 mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg shadow-xl max-h-64 overflow-y-auto">
+                    <div className="absolute z-50 mt-1 w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg shadow-xl max-h-64 overflow-y-auto">
                       {["MI", "RI", "Ads Intelligence", "GEO", "RMAds", "Data Ads", "Data Rank", "Features", "Outros"].map((option) => {
                         const isSelected = formData.produto.split(", ").includes(option);
                         return (
                           <div
                             key={option}
-                            className="px-3 py-2 text-sm cursor-pointer hover:bg-[#2a2a2a] flex items-center gap-2"
+                            className="px-3 py-2 text-sm cursor-pointer hover:bg-[var(--input-border)] flex items-center gap-2"
                             onClick={() => {
                               const items = formData.produto ? formData.produto.split(", ") : [];
                               if (isSelected) {
@@ -1726,18 +1726,18 @@ export default function OverviewPage() {
                               }
                             }}
                           >
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? "bg-blue-500 border-blue-500" : "border-[#525252]"}`}>
-                              {isSelected && <span className="text-white text-xs">✓</span>}
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${isSelected ? "bg-blue-500 border-blue-500" : "border-[var(--input-border)]"}`}>
+                              {isSelected && <span className="text-[var(--foreground)] text-xs">✓</span>}
                             </div>
-                            <span className={isSelected ? "text-white" : "text-[#a3a3a3]"}>{option}</span>
+                            <span className={isSelected ? "text-[var(--foreground)]" : "text-[var(--muted)]"}>{option}</span>
                           </div>
                         );
                       })}
-                      <div className="border-t border-[#2a2a2a] p-2">
+                      <div className="border-t border-[var(--input-border)] p-2">
                         <input
                           type="text"
                           placeholder="Digitar outro..."
-                          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                          className="w-full bg-[var(--background)] border border-[var(--input-border)] rounded px-2 py-1.5 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50"
                           onClick={(e) => e.stopPropagation()}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && e.currentTarget.value.trim()) {
@@ -1757,7 +1757,7 @@ export default function OverviewPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Receita Atual (R$)
                   </label>
                   <input
@@ -1770,11 +1770,11 @@ export default function OverviewPage() {
                         receita_atual: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Receita Negociação (R$)
                   </label>
                   <input
@@ -1787,23 +1787,23 @@ export default function OverviewPage() {
                         receita_negociacao: parseFloat(e.target.value) || 0,
                       })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Upsell (R$)
                   </label>
-                  <div className="w-full bg-[#1a1a1a]/50 border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm font-bold" style={{ color: (formData.receita_negociacao - formData.receita_atual) >= 0 ? "#38bdf8" : "#f43f5e" }}>
+                  <div className="w-full bg-[var(--input-bg)]/50 border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm font-bold" style={{ color: (formData.receita_negociacao - formData.receita_atual) >= 0 ? "#38bdf8" : "#f43f5e" }}>
                     {formatCurrency(formData.receita_negociacao - formData.receita_atual)}
                   </div>
-                  <p className="text-[10px] text-[#525252] mt-1">Calculado automaticamente: Receita Negociação − Receita Atual</p>
+                  <p className="text-[10px] text-[var(--muted)] mt-1">Calculado automaticamente: Receita Negociação − Receita Atual</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Calor
                   </label>
                   <select
@@ -1811,7 +1811,7 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, calor: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   >
                     {calorOptions.map((c) => (
                       <option key={c} value={c}>
@@ -1821,7 +1821,7 @@ export default function OverviewPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Status
                   </label>
                   <select
@@ -1829,7 +1829,7 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500/50 cursor-pointer"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-blue-500/50 cursor-pointer"
                   >
                     {statusOptions.map((s) => (
                       <option key={s} value={s}>
@@ -1839,7 +1839,7 @@ export default function OverviewPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Mês Atuação
                   </label>
                   <input
@@ -1848,14 +1848,14 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, mes_atuacao: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-emerald-500/50 cursor-pointer "
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Proposta em
                   </label>
                   <input
@@ -1864,11 +1864,11 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, proposta_em: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-emerald-500/50 cursor-pointer "
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                  <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                     Previsão de Fechamento
                   </label>
                   <input
@@ -1877,13 +1877,13 @@ export default function OverviewPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, data_fechamento: e.target.value })
                     }
-                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 cursor-pointer [color-scheme:dark]"
+                    className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] focus:outline-none focus:border-emerald-500/50 cursor-pointer "
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                   Observações 1
                 </label>
                 <textarea
@@ -1892,12 +1892,12 @@ export default function OverviewPage() {
                     setFormData({ ...formData, observacoes_1: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                   Observações 2
                 </label>
                 <textarea
@@ -1906,7 +1906,7 @@ export default function OverviewPage() {
                     setFormData({ ...formData, observacoes_2: e.target.value })
                   }
                   rows={2}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#525252] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:border-blue-500/50 resize-none cursor-pointer"
                 />
               </div>
 
@@ -1914,14 +1914,14 @@ export default function OverviewPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+                  className="px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--foreground)] rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
                   style={{
                     background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
                     boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
@@ -1939,24 +1939,24 @@ export default function OverviewPage() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#141414] border border-[#222222] rounded-xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-semibold text-white mb-2">
+          <div className="bg-[var(--card-bg)] border border-[var(--card-border)] rounded-xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-2">
               Confirmar exclusão
             </h3>
-            <p className="text-sm text-[#a3a3a3] mb-4">
+            <p className="text-sm text-[var(--muted)] mb-4">
               Tem certeza que deseja excluir esta oportunidade? Esta ação não pode ser
               desfeita.
             </p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-sm text-[#a3a3a3] hover:text-white bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg transition-colors cursor-pointer"
+                className="px-4 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg transition-colors cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--foreground)] bg-red-600 hover:bg-red-700 rounded-lg transition-colors font-medium cursor-pointer"
               >
                 <Trash2 size={14} />
                 Excluir

@@ -105,7 +105,7 @@ export default function LoginPage() {
                 boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
               }}
             >
-              <KeyRound size={28} className="text-white" />
+              <KeyRound size={28} className="text-[var(--foreground)]" />
             </div>
             <h1
               className="text-2xl font-bold"
@@ -117,7 +117,7 @@ export default function LoginPage() {
             >
               Rank CRM
             </h1>
-            <p className="text-sm text-[#737373] mt-1">Recuperar Senha</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Recuperar Senha</p>
           </div>
 
           <div
@@ -133,13 +133,13 @@ export default function LoginPage() {
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
                   <Mail size={20} className="text-emerald-400" />
                 </div>
-                <h2 className="text-lg font-semibold text-white mb-2">Email enviado!</h2>
-                <p className="text-sm text-[#a3a3a3] mb-6">
-                  Verifique sua caixa de entrada em <strong className="text-white">{resetEmail}</strong> para redefinir sua senha.
+                <h2 className="text-lg font-semibold text-[var(--foreground)] mb-2">Email enviado!</h2>
+                <p className="text-sm text-[var(--muted)] mb-6">
+                  Verifique sua caixa de entrada em <strong className="text-[var(--foreground)]">{resetEmail}</strong> para redefinir sua senha.
                 </p>
                 <button
                   onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetEmail(""); }}
-                  className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all cursor-pointer hover:opacity-90"
+                  className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all cursor-pointer hover:opacity-90"
                   style={{
                     background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
                     boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
@@ -150,8 +150,8 @@ export default function LoginPage() {
               </div>
             ) : (
               <>
-                <h2 className="text-lg font-semibold text-white mb-1 relative">Esqueceu sua senha?</h2>
-                <p className="text-xs text-[#737373] mb-6 relative">
+                <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1 relative">Esqueceu sua senha?</h2>
+                <p className="text-xs text-[var(--muted)] mb-6 relative">
                   Informe seu email e enviaremos um link para redefinir sua senha.
                 </p>
 
@@ -169,13 +169,13 @@ export default function LoginPage() {
 
                 <form onSubmit={handleForgotPassword} className="space-y-4 relative">
                   <div>
-                    <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+                    <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                       Email institucional
                     </label>
                     <div className="relative">
                       <Mail
                         size={16}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
                       />
                       <input
                         type="email"
@@ -183,7 +183,7 @@ export default function LoginPage() {
                         onChange={(e) => setResetEmail(e.target.value)}
                         placeholder="seu.nome@rankmyapp.com.br"
                         required
-                        className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#525252] focus:outline-none transition-all"
+                        className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none transition-all"
                         onFocus={(e) => {
                           e.currentTarget.style.borderColor = "rgba(124,58,237,0.5)";
                           e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
@@ -199,7 +199,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
+                    className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
                     style={{
                       background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
                       boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
@@ -218,7 +218,7 @@ export default function LoginPage() {
 
                 <button
                   onClick={() => { setShowForgotPassword(false); setError(""); }}
-                  className="w-full mt-4 text-xs text-[#737373] hover:text-[#a3a3a3] transition-colors cursor-pointer"
+                  className="w-full mt-4 text-xs text-[var(--muted)] hover:text-[var(--muted)] transition-colors cursor-pointer"
                 >
                   ← Voltar ao login
                 </button>
@@ -226,7 +226,7 @@ export default function LoginPage() {
             )}
           </div>
 
-          <p className="text-center text-[10px] text-[#404040] mt-6">
+          <p className="text-center text-[10px] text-[var(--muted)] mt-6">
             Feito pela equipe RankMyApp
           </p>
         </div>
@@ -257,7 +257,7 @@ export default function LoginPage() {
               boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
             }}
           >
-            <Briefcase size={28} className="text-white" />
+            <Briefcase size={28} className="text-[var(--foreground)]" />
           </div>
           <h1
             className="text-2xl font-bold"
@@ -269,7 +269,7 @@ export default function LoginPage() {
           >
             Rank CRM
           </h1>
-          <p className="text-sm text-[#737373] mt-1">Gestão de Oportunidades</p>
+          <p className="text-sm text-[var(--muted)] mt-1">Gestão de Oportunidades</p>
         </div>
 
         <div
@@ -285,8 +285,8 @@ export default function LoginPage() {
             style={{ background: "radial-gradient(circle, #7c3aed, transparent)" }}
           />
 
-          <h2 className="text-lg font-semibold text-white mb-1 relative">Entrar</h2>
-          <p className="text-xs text-[#737373] mb-6 relative">
+          <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1 relative">Entrar</h2>
+          <p className="text-xs text-[var(--muted)] mb-6 relative">
             Use seu email institucional ou Google para acessar
           </p>
 
@@ -306,7 +306,7 @@ export default function LoginPage() {
           <button
             onClick={handleGoogleLogin}
             disabled={googleLoading}
-            className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-[#2a2a2a] bg-[#1a1a1a] hover:bg-[#222222] transition-all text-sm text-white font-medium mb-4 cursor-pointer disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-3 py-2.5 rounded-lg border border-[var(--input-border)] bg-[var(--input-bg)] hover:bg-[var(--card-border)] transition-all text-sm text-[var(--foreground)] font-medium mb-4 cursor-pointer disabled:opacity-50"
           >
             {googleLoading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -317,20 +317,20 @@ export default function LoginPage() {
           </button>
 
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex-1 h-px bg-[#2a2a2a]" />
-            <span className="text-[10px] text-[#525252] uppercase tracking-wider">ou</span>
-            <div className="flex-1 h-px bg-[#2a2a2a]" />
+            <div className="flex-1 h-px bg-[var(--input-border)]" />
+            <span className="text-[10px] text-[var(--muted)] uppercase tracking-wider">ou</span>
+            <div className="flex-1 h-px bg-[var(--input-border)]" />
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4 relative">
             <div>
-              <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                 Email institucional
               </label>
               <div className="relative">
                 <Mail
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
                 />
                 <input
                   type="email"
@@ -338,7 +338,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="seu.nome@rankmyapp.com.br"
                   required
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#525252] focus:outline-none transition-all"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none transition-all"
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "rgba(124,58,237,0.5)";
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
@@ -352,13 +352,13 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-[#a3a3a3] mb-1.5">
+              <label className="block text-xs font-medium text-[var(--muted)] mb-1.5">
                 Senha
               </label>
               <div className="relative">
                 <Lock
                   size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[#525252]"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
                 />
                 <input
                   type="password"
@@ -366,7 +366,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#525252] focus:outline-none transition-all"
+                  className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg pl-10 pr-4 py-2.5 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none transition-all"
                   onFocus={(e) => {
                     e.currentTarget.style.borderColor = "rgba(124,58,237,0.5)";
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
@@ -382,7 +382,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
+              className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
               style={{
                 background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
                 boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
@@ -401,13 +401,13 @@ export default function LoginPage() {
 
           <button
             onClick={() => { setShowForgotPassword(true); setError(""); }}
-            className="w-full mt-4 text-xs text-[#737373] hover:text-[#a3a3a3] transition-colors cursor-pointer"
+            className="w-full mt-4 text-xs text-[var(--muted)] hover:text-[var(--muted)] transition-colors cursor-pointer"
           >
             Esqueci minha senha
           </button>
         </div>
 
-        <p className="text-center text-[10px] text-[#404040] mt-6">
+        <p className="text-center text-[10px] text-[var(--muted)] mt-6">
           Feito pela equipe RankMyApp
         </p>
       </div>
