@@ -1011,12 +1011,12 @@ export default function OverviewPage() {
                     <Tooltip
                       cursor={{ fill: `${currentSlide.color}15`, stroke: `${currentSlide.color}40`, strokeWidth: 1 }}
                       contentStyle={{
-                        backgroundColor: "#0f0f0f",
+                        backgroundColor: "var(--card-bg)",
                         border: `1px solid ${currentSlide.color}60`,
                         borderRadius: "10px",
-                        color: "#fff",
+                        color: "var(--foreground)",
                         fontSize: "12px",
-                        boxShadow: `0 8px 24px rgba(0,0,0,0.6), 0 0 0 1px ${currentSlide.color}20`,
+                        boxShadow: `0 8px 24px rgba(0,0,0,0.15), 0 0 0 1px ${currentSlide.color}20`,
                         backdropFilter: "blur(8px)",
                       }}
                       content={({ active, payload, label }) => {
