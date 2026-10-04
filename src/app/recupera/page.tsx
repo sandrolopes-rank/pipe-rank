@@ -610,13 +610,13 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5 group"
           style={{
-            background: "linear-gradient(135deg, #1a1033 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #8b5cf6, transparent)" }}
+            style={{ background: "radial-gradient(circle, var(--accent), transparent)" }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -683,14 +683,14 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5 group cursor-pointer hover:border-amber-500/30 transition-colors"
           style={{
-            background: "linear-gradient(135deg, #1a1505 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
           }}
           onClick={() => setShowPropostasModal(true)}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #f59e0b, transparent)" }}
+            style={{ background: "radial-gradient(circle, var(--warning), transparent)" }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -739,13 +739,13 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5 group"
           style={{
-            background: "linear-gradient(135deg, #1a0f05 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #f97316, transparent)" }}
+            style={{ background: "radial-gradient(circle, var(--warning), transparent)" }}
           />
           <div className="relative flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
@@ -820,13 +820,13 @@ export default function OverviewPage() {
       <div
         className="relative overflow-hidden rounded-2xl p-5 mb-6"
         style={{
-          background: "linear-gradient(135deg, #0a1628 0%, #141414 50%)",
-          border: "1px solid #222222",
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
         }}
       >
         <div
           className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }}
+          style={{ background: "radial-gradient(circle, var(--accent-gradient-to), transparent)" }}
         />
         <div className="relative flex items-center justify-between mb-4">
           <div>
@@ -983,15 +983,15 @@ export default function OverviewPage() {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "#1a1a1a",
-                      border: "1px solid #2a2a2a",
+                      backgroundColor: "var(--card-bg)",
+                      border: "1px solid var(--card-border)",
                       borderRadius: "8px",
-                      color: "#fff",
+                      color: "var(--foreground)",
                       fontSize: "12px",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
                     }}
                     formatter={(value) => [formatCurrency(Number(value ?? 0)), "Upsell"]}
-                    labelStyle={{ color: "#a3a3a3", marginBottom: 4 }}
+                    labelStyle={{ color: "var(--muted)", marginBottom: 4 }}
                   />
                   <Line
                     type="monotone"
@@ -1008,16 +1008,16 @@ export default function OverviewPage() {
                           r={4}
                           fill={isPositive ? "#3b82f6" : "#ef4444"}
                           strokeWidth={2}
-                          stroke="#141414"
+                          stroke="var(--card-bg)"
                         />
                       );
                     }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: "#141414" }}
+                    activeDot={{ r: 6, strokeWidth: 2, stroke: "var(--card-bg)" }}
                   >
                     <LabelList
                       dataKey="value"
                       position="top"
-                      style={{ fill: "#a3a3a3", fontSize: 10, fontWeight: 500 }}
+                      style={{ fill: "var(--muted)", fontSize: 10, fontWeight: 500 }}
                       formatter={(value: unknown) =>
                         new Intl.NumberFormat("pt-BR", {
                           notation: "compact",
@@ -1044,13 +1044,13 @@ export default function OverviewPage() {
         <div
           className="relative overflow-hidden rounded-2xl p-5"
           style={{
-            background: "linear-gradient(135deg, #0f172a 0%, #141414 60%)",
-            border: "1px solid #222222",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
           }}
         >
           <div
             className="absolute bottom-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #10b981, transparent)" }}
+            style={{ background: "radial-gradient(circle, var(--success), transparent)" }}
           />
           <div className="relative flex items-center justify-between mb-4">
             <div className="flex items-center gap-1.5">
@@ -1245,9 +1245,9 @@ export default function OverviewPage() {
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs text-[var(--foreground)] rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
+          className="flex items-center gap-1.5 px-4 py-2 text-xs text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
           style={{
-            background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+            background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
             boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
           }}
         >
@@ -1260,8 +1260,8 @@ export default function OverviewPage() {
       <div
         className="relative overflow-hidden rounded-2xl"
         style={{
-          background: "linear-gradient(135deg, #0f172a 0%, #141414 40%)",
-          border: "1px solid #222222",
+          background: "var(--card-bg)",
+          border: "1px solid var(--card-border)",
         }}
       >
         <div className="overflow-x-auto">
@@ -1921,9 +1921,9 @@ export default function OverviewPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-[var(--foreground)] rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg disabled:opacity-50"
                   style={{
-                    background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+                    background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
                     boxShadow: "0 4px 12px rgba(124, 58, 237, 0.25)",
                   }}
                 >

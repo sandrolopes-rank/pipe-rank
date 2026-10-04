@@ -85,15 +85,15 @@ export default function LoginPage() {
     return (
       <div
         className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #0d0d1a 50%, #0a0a0a 100%)" }}
+        style={{ background: "var(--background)" }}
       >
         <div
           className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #7c3aed, transparent)" }}
+          style={{ background: "radial-gradient(circle, var(--accent), transparent)" }}
         />
         <div
           className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-          style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }}
+          style={{ background: "radial-gradient(circle, var(--accent-gradient-to), transparent)" }}
         />
 
         <div className="w-full max-w-md relative z-10">
@@ -101,19 +101,15 @@ export default function LoginPage() {
             <div
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+                background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
                 boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
               }}
             >
-              <KeyRound size={28} className="text-[var(--foreground)]" />
+              <KeyRound size={28} className="text-white" />
             </div>
             <h1
               className="text-2xl font-bold"
-              style={{
-                background: "linear-gradient(90deg, #c4b5fd, #93c5fd)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
+              style={{ color: "var(--foreground)" }}
             >
               Rank CRM
             </h1>
@@ -123,9 +119,9 @@ export default function LoginPage() {
           <div
             className="rounded-2xl p-8 relative overflow-hidden"
             style={{
-              background: "linear-gradient(135deg, #141420 0%, #141414 60%)",
-              border: "1px solid #222222",
-              boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+              background: "var(--card-bg)",
+              border: "1px solid var(--card-border)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
             }}
           >
             {resetSent ? (
@@ -139,9 +135,9 @@ export default function LoginPage() {
                 </p>
                 <button
                   onClick={() => { setShowForgotPassword(false); setResetSent(false); setResetEmail(""); }}
-                  className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all cursor-pointer hover:opacity-90"
+                  className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all cursor-pointer hover:opacity-90"
                   style={{
-                    background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+                    background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
                     boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
                   }}
                 >
@@ -189,7 +185,7 @@ export default function LoginPage() {
                           e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
                         }}
                         onBlur={(e) => {
-                          e.currentTarget.style.borderColor = "#2a2a2a";
+                          e.currentTarget.style.borderColor = "";
                           e.currentTarget.style.boxShadow = "none";
                         }}
                       />
@@ -201,7 +197,7 @@ export default function LoginPage() {
                     disabled={resetLoading}
                     className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
                     style={{
-                      background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+                      background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
                       boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
                     }}
                   >
@@ -237,15 +233,15 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #0a0a0a 0%, #0d0d1a 50%, #0a0a0a 100%)" }}
+      style={{ background: "var(--background)" }}
     >
       <div
         className="absolute top-0 left-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-        style={{ background: "radial-gradient(circle, #7c3aed, transparent)" }}
+        style={{ background: "radial-gradient(circle, var(--accent), transparent)" }}
       />
       <div
         className="absolute bottom-0 right-1/4 w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
-        style={{ background: "radial-gradient(circle, #3b82f6, transparent)" }}
+        style={{ background: "radial-gradient(circle, var(--accent-gradient-to), transparent)" }}
       />
 
       <div className="w-full max-w-md relative z-10">
@@ -253,19 +249,15 @@ export default function LoginPage() {
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl"
             style={{
-              background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+              background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
               boxShadow: "0 8px 32px rgba(124, 58, 237, 0.35)",
             }}
           >
-            <Briefcase size={28} className="text-[var(--foreground)]" />
+            <Briefcase size={28} className="text-white" />
           </div>
           <h1
             className="text-2xl font-bold"
-            style={{
-              background: "linear-gradient(90deg, #c4b5fd, #93c5fd)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
+            style={{ color: "var(--foreground)" }}
           >
             Rank CRM
           </h1>
@@ -275,14 +267,14 @@ export default function LoginPage() {
         <div
           className="rounded-2xl p-8 relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, #141420 0%, #141414 60%)",
-            border: "1px solid #222222",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            background: "var(--card-bg)",
+            border: "1px solid var(--card-border)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
           }}
         >
           <div
             className="absolute top-0 right-0 w-32 h-32 rounded-full blur-2xl opacity-10 pointer-events-none"
-            style={{ background: "radial-gradient(circle, #7c3aed, transparent)" }}
+            style={{ background: "radial-gradient(circle, var(--accent), transparent)" }}
           />
 
           <h2 className="text-lg font-semibold text-[var(--foreground)] mb-1 relative">Entrar</h2>
@@ -344,7 +336,7 @@ export default function LoginPage() {
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#2a2a2a";
+                    e.currentTarget.style.borderColor = "";
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 />
@@ -372,7 +364,7 @@ export default function LoginPage() {
                     e.currentTarget.style.boxShadow = "0 0 0 2px rgba(124,58,237,0.15)";
                   }}
                   onBlur={(e) => {
-                    e.currentTarget.style.borderColor = "#2a2a2a";
+                    e.currentTarget.style.borderColor = "";
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 />
@@ -382,9 +374,9 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full text-[var(--foreground)] text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
+              className="w-full text-white text-sm font-medium py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 hover:shadow-xl disabled:opacity-50"
               style={{
-                background: "linear-gradient(135deg, #7c3aed, #3b82f6)",
+                background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
                 boxShadow: "0 4px 16px rgba(124, 58, 237, 0.3)",
               }}
             >
