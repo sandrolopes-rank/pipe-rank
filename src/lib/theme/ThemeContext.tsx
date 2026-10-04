@@ -28,37 +28,9 @@ export function useTheme() {
 }
 
 function applyThemeToDOM(palette: Palette, mode: ThemeMode) {
-  const colors = mode === "dark" ? palette.dark : palette.light;
   const root = document.documentElement;
-
-  root.style.setProperty("--background", colors.background);
-  root.style.setProperty("--foreground", colors.foreground);
-  root.style.setProperty("--sidebar-bg", colors.sidebarBg);
-  root.style.setProperty("--sidebar-border", colors.sidebarBorder);
-  root.style.setProperty("--card-bg", colors.cardBg);
-  root.style.setProperty("--card-border", colors.cardBorder);
-  root.style.setProperty("--input-bg", colors.inputBg);
-  root.style.setProperty("--input-border", colors.inputBorder);
-  root.style.setProperty("--accent", colors.accent);
-  root.style.setProperty("--accent-hover", colors.accentHover);
-  root.style.setProperty("--accent-gradient-from", colors.accentGradientFrom);
-  root.style.setProperty("--accent-gradient-to", colors.accentGradientTo);
-  root.style.setProperty("--accent-text", colors.accentText);
-  root.style.setProperty("--muted", colors.muted);
-  root.style.setProperty("--table-header", colors.tableHeader);
-  root.style.setProperty("--table-row-hover", colors.tableRowHover);
-  root.style.setProperty("--table-border", colors.tableBorder);
-  root.style.setProperty("--success", colors.success);
-  root.style.setProperty("--warning", colors.warning);
-  root.style.setProperty("--danger", colors.danger);
-  root.style.setProperty("--logo-gradient-from", colors.logoGradientFrom);
-  root.style.setProperty("--logo-gradient-to", colors.logoGradientTo);
-  root.style.setProperty("--nav-active-bg", colors.navActiveBg);
-  root.style.setProperty("--nav-active-border", colors.navActiveBorder);
-  root.style.setProperty("--scrollbar-thumb", colors.scrollbarThumb);
-  root.style.setProperty("--scrollbar-thumb-hover", colors.scrollbarThumbHover);
-
-  // Set data attribute for mode
+  // Use only data attributes — CSS selectors [data-palette][data-theme-mode] handle all variables
+  root.setAttribute("data-palette", palette.id);
   root.setAttribute("data-theme-mode", mode);
 }
 
