@@ -31,6 +31,7 @@ function applyThemeToDOM(palette: Palette, mode: ThemeMode) {
   const root = document.documentElement;
   root.setAttribute("data-palette", palette.id);
   root.setAttribute("data-theme-mode", mode);
+  root.style.colorScheme = mode;
 }
 
 async function saveThemeToSupabase(paletteId: string, mode: ThemeMode) {
