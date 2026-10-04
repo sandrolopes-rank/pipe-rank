@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   LayoutDashboard,
   LifeBuoy,
+  RefreshCw,
   Briefcase,
   Bell,
   Users,
@@ -23,6 +24,7 @@ import { useTheme } from "@/lib/theme/ThemeContext";
 const navItems = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
   { label: "Recupera", href: "/recupera", icon: LifeBuoy },
+  { label: "Renovações", href: "/renovacoes", icon: RefreshCw },
 ];
 
 const upcomingItems = [
