@@ -25,9 +25,16 @@ const themeScript = `
     if (stored) {
       var theme = JSON.parse(stored);
       if (theme.paletteId) document.documentElement.setAttribute('data-palette', theme.paletteId);
-      if (theme.mode) document.documentElement.setAttribute('data-theme-mode', theme.mode);
+      if (theme.mode) {
+        document.documentElement.setAttribute('data-theme-mode', theme.mode);
+        document.documentElement.style.colorScheme = theme.mode;
+      }
+    } else {
+      document.documentElement.style.colorScheme = 'light';
     }
-  } catch(e) {}
+  } catch(e) {
+    document.documentElement.style.colorScheme = 'light';
+  }
 })();
 `;
 
