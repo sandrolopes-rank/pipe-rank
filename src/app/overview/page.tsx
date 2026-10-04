@@ -1998,7 +1998,7 @@ style={{ color: "var(--muted)" }}
                       setFormData({ ...formData, mes_atuacao: e.target.value })
                     }
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
-                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
               </div>
@@ -2015,7 +2015,7 @@ style={{ color: "var(--muted)" }}
                       setFormData({ ...formData, proposta_em: e.target.value })
                     }
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
-                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
                 <div>
@@ -2029,7 +2029,7 @@ style={{ color: "var(--muted)" }}
                       setFormData({ ...formData, data_fechamento: e.target.value })
                     }
                     className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none cursor-pointer"
-                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)", colorScheme: mode === "dark" ? "dark" : "light" }}
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
               </div>
