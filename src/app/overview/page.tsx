@@ -368,7 +368,11 @@ export default function OverviewPage() {
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({
-        month: new Date(month + "-01").toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        month: (() => {
+          const [y, m] = month.split("-");
+          const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+          return `${MONTHS[parseInt(m, 10) - 1]}/${y.slice(2)}`;
+        })(),
         value: data.value,
         clients: data.clients,
       }));
@@ -391,7 +395,11 @@ export default function OverviewPage() {
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({
-        month: new Date(month + "-01").toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        month: (() => {
+          const [y, m] = month.split("-");
+          const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+          return `${MONTHS[parseInt(m, 10) - 1]}/${y.slice(2)}`;
+        })(),
         value: data.value,
         count: data.count,
         clients: data.clients,
@@ -415,7 +423,11 @@ export default function OverviewPage() {
     return Object.entries(grouped)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, data]) => ({
-        month: new Date(month + "-01").toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+        month: (() => {
+          const [y, m] = month.split("-");
+          const MONTHS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+          return `${MONTHS[parseInt(m, 10) - 1]}/${y.slice(2)}`;
+        })(),
         value: data.value,
         count: data.count,
         clients: data.clients,
