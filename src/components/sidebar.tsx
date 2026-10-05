@@ -24,11 +24,17 @@ import { useTheme } from "@/lib/theme/ThemeContext";
 
 const navItems = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
+];
+
+// Somente admin navega nestas paginas (por enquanto)
+const adminNavItems = [
   { label: "Recupera", href: "/recupera", icon: LifeBuoy },
   { label: "Renovações", href: "/renovacoes", icon: RefreshCw },
 ];
 
 const upcomingItems = [
+  { label: "Recupera", icon: LifeBuoy },
+  { label: "Renovações", icon: RefreshCw },
   { label: "Alertas", icon: Bell },
   { label: "Usuários", icon: Users },
 ];
@@ -165,7 +171,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map((item) => {
+        {navItems.concat(isAdmin ? adminNavItems : []).map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link

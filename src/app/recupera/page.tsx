@@ -58,6 +58,8 @@ const meses = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
+const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
+
 export default function RecuperaPage() {
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -83,7 +85,21 @@ export default function RecuperaPage() {
   });
 
   useEffect(() => {
-    loadData();
+    async function guardAndLoad() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        window.location.href = "/login";
+        return;
+      }
+      // Pagina em "Em Breve" para usuarios comuns: somente admin acessa
+      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+        window.location.href = "/overview";
+        return;
+      }
+      loadData();
+    }
+    guardAndLoad();
   }, []);
 
   async function loadData() {
