@@ -21,6 +21,20 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/login?error=unauthorized_domain`);
       }
 
+      // Registra o acesso (login via Google) no caderno de portaria
+      if (user) {
+        try {
+          await supabase.from("access_logs").insert({
+            user_id: user.id,
+            email: user.email ?? "",
+            event: "login",
+            user_agent: request.headers.get("user-agent") ?? "",
+          });
+        } catch {
+          // Falha no log nunca pode impedir o login
+        }
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

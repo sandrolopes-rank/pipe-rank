@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError("");
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -34,6 +34,20 @@ export default function LoginPage() {
       setError("Email ou senha inválidos. Verifique suas credenciais.");
       setLoading(false);
       return;
+    }
+
+    // Registra o acesso no caderno de portaria (visível apenas para o admin).
+    // Fire-and-forget: falha aqui nunca bloqueia o login do usuário.
+    if (data.user) {
+      supabase
+        .from("access_logs")
+        .insert({
+          user_id: data.user.id,
+          email: data.user.email ?? "",
+          event: "login",
+          user_agent: navigator.userAgent,
+        })
+        .then(() => {});
     }
 
     router.push("/overview");

@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Briefcase,
   Bell,
+  BarChart3,
   Users,
   LogOut,
   Sun,
@@ -31,6 +32,14 @@ const upcomingItems = [
   { label: "Alertas", icon: Bell },
   { label: "Usuários", icon: Users },
 ];
+
+const adminItems = [
+  { label: "Alertas", href: "/alertas", icon: Bell },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "Usuários", href: "/usuarios", icon: Users },
+];
+
+const ALERTS_SEEN_KEY = "alertas_last_seen";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
@@ -57,6 +66,51 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   }, [propUserEmail]);
 
   const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const [alertsCount, setAlertsCount] = useState(0);
+
+  // Badge de alertas não vistos (somente admin): conta eventos novos no audit_log
+  useEffect(() => {
+    if (!isAdmin) return;
+    const supabase = createClient();
+    let disposed = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function loadCount() {
+      const lastSeen = localStorage.getItem(ALERTS_SEEN_KEY) ?? new Date(0).toISOString();
+      const { count } = await supabase
+        .from("audit_log")
+        .select("id", { count: "exact", head: true })
+        .gt("created_at", lastSeen)
+        .neq("actor_email", ADMIN_EMAIL);
+      if (!disposed) setAlertsCount(count ?? 0);
+    }
+
+    loadCount();
+
+    channel = supabase
+      .channel(`alertas-badge-${Date.now()}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "audit_log" },
+        (payload) => {
+          const actor = (payload.new as { actor_email?: string }).actor_email;
+          if (actor?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
+          setAlertsCount((c) => c + 1);
+        }
+      )
+      .subscribe();
+
+    function handleSeen() {
+      setAlertsCount(0);
+    }
+    window.addEventListener("alertas-seen", handleSeen);
+
+    return () => {
+      disposed = true;
+      if (channel) supabase.removeChannel(channel);
+      window.removeEventListener("alertas-seen", handleSeen);
+    };
+  }, [isAdmin]);
 
   // Close settings menu when clicking outside
   useEffect(() => {
@@ -152,48 +206,59 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
 
         <div className="pt-4 pb-2 px-3">
           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            Em Breve
+            {isAdmin ? "Admin" : "Em Breve"}
           </span>
         </div>
 
-        {upcomingItems.map((item) => {
-          if (item.label === "Usuários" && isAdmin) {
-            const isActive = pathname === "/usuarios";
-            return (
-              <Link
+        {isAdmin
+          ? adminItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
+                  style={
+                    isActive
+                      ? {
+                          background: "var(--nav-active-bg)",
+                          color: "var(--foreground)",
+                          fontWeight: 500,
+                          border: "1px solid var(--nav-active-border)",
+                        }
+                      : {
+                          color: "var(--muted)",
+                          border: "1px solid transparent",
+                        }
+                  }
+                >
+                  <item.icon size={16} style={isActive ? { color: "var(--accent-text)" } : undefined} />
+                  <span className="flex-1">{item.label}</span>
+                  {item.href === "/alertas" && alertsCount > 0 && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                      style={{
+                        background: "rgba(239,68,68,0.15)",
+                        color: "#ef4444",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                      }}
+                    >
+                      {alertsCount}
+                    </span>
+                  )}
+                </Link>
+              );
+            })
+          : upcomingItems.map((item) => (
+              <div
                 key={item.label}
-                href="/usuarios"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all"
-                style={
-                  isActive
-                    ? {
-                        background: "var(--nav-active-bg)",
-                        color: "var(--foreground)",
-                        fontWeight: 500,
-                        border: "1px solid var(--nav-active-border)",
-                      }
-                    : {
-                        color: "var(--muted)",
-                        border: "1px solid transparent",
-                      }
-                }
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-not-allowed"
+                style={{ color: "var(--muted)", opacity: 0.5 }}
               >
-                <item.icon size={16} style={isActive ? { color: "var(--accent-text)" } : undefined} />
+                <item.icon size={16} />
                 {item.label}
-              </Link>
-            );
-          }
-          return (
-            <div
-              key={item.label}
-              className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-not-allowed"
-              style={{ color: "var(--muted)", opacity: 0.5 }}
-            >
-              <item.icon size={16} />
-              {item.label}
-            </div>
-          );
-        })}
+              </div>
+            ))}
       </nav>
 
       {/* User info + Settings */}
