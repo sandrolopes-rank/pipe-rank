@@ -45,6 +45,7 @@ const FIELD_LABELS: Record<string, string> = {
   data_fechamento: "Data de Fechamento",
   observacoes_1: "Observações 1",
   observacoes_2: "Observações 2",
+  arquivada: "Arquivada",
 };
 
 const HIDDEN_FIELDS = new Set(["id", "created_at", "updated_at", "owner_email"]);

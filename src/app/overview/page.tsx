@@ -38,6 +38,8 @@ import {
   X,
   Save,
   Trash2,
+  Archive,
+  ArchiveRestore,
   Info,
   Flame,
   Thermometer,
@@ -67,6 +69,7 @@ interface Opportunity {
   data_fechamento: string;
   observacoes_1: string;
   observacoes_2: string;
+  arquivada?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -169,6 +172,8 @@ export default function OverviewPage() {
   const [formData, setFormData] = useState(emptyOpportunity);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const [showArchivedModal, setShowArchivedModal] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   // Column visibility
@@ -279,8 +284,12 @@ export default function OverviewPage() {
     };
   }, []);
 
+  // Arquivadas saem da tabela e dos gráficos (o dado fica salvo no banco)
+  const visibleOpportunities = opportunities.filter((o) => !o.arquivada);
+  const archivedOpportunities = opportunities.filter((o) => o.arquivada);
+
   // Filter out closed/lost statuses for dashboard metrics (Upsell, Propostas, Mapa de Calor)
-  const activeOpportunities = opportunities.filter(
+  const activeOpportunities = visibleOpportunities.filter(
     (o) =>
       o.status !== "Proposta Perdida" &&
       o.status !== "Assinado" &&
@@ -381,7 +390,7 @@ export default function OverviewPage() {
   // Chart data - Negociações Fechadas por mês (status === "Fechado" or "Assinado")
   const chartDataFechadas = (() => {
     const grouped: Record<string, { value: number; count: number; clients: string[] }> = {};
-    opportunities
+    visibleOpportunities
       .filter((o) => o.status === "Fechado" || o.status === "Assinado")
       .forEach((o) => {
         if (o.data_fechamento) {
@@ -409,7 +418,7 @@ export default function OverviewPage() {
   // Chart data - Negociações Perdidas por mês (status === "Perdido" or "Proposta Perdida")
   const chartDataPerdidas = (() => {
     const grouped: Record<string, { value: number; count: number; clients: string[] }> = {};
-    opportunities
+    visibleOpportunities
       .filter((o) => o.status === "Perdido" || o.status === "Proposta Perdida")
       .forEach((o) => {
         if (o.data_fechamento) {
@@ -486,7 +495,7 @@ export default function OverviewPage() {
 
   // Table filtering & pagination
   const filteredOpportunities = useMemo(() => {
-    let result = opportunities;
+    let result = visibleOpportunities;
     if (search) {
       const s = search.toLowerCase();
       result = result.filter(
@@ -507,7 +516,7 @@ export default function OverviewPage() {
       result = result.filter((o) => o.responsavel === filterResponsavel);
     }
     return result;
-  }, [opportunities, search, filterStatus, filterCalor, filterResponsavel]);
+  }, [visibleOpportunities, search, filterStatus, filterCalor, filterResponsavel]);
 
   const totalPages = Math.max(1, Math.ceil(filteredOpportunities.length / perPage));
 
@@ -544,8 +553,8 @@ export default function OverviewPage() {
   );
 
   const uniqueResponsaveis = useMemo(
-    () => [...new Set(opportunities.map((o) => o.responsavel).filter(Boolean))],
-    [opportunities]
+    () => [...new Set(visibleOpportunities.map((o) => o.responsavel).filter(Boolean))],
+    [visibleOpportunities]
   );
 
   function openCreateModal() {
@@ -616,8 +625,29 @@ export default function OverviewPage() {
   async function handleDelete(id: string) {
     const supabase = createClient();
     await supabase.from("oportunidades").delete().eq("id", id);
+    setOpportunities((prev) => prev.filter((o) => o.id !== id));
     setDeleteConfirm(null);
     setOpenMenu(null);
+  }
+
+  // Arquivar/desarquivar: dado preservado no banco, sai da tabela e dos gráficos
+  async function handleArchive(id: string, arquivar: boolean) {
+    // Atualização otimista: reflete na hora (tabela, gráficos e gaveta)
+    setOpportunities((prev) =>
+      prev.map((o) => (o.id === id ? { ...o, arquivada: arquivar } : o))
+    );
+    setOpenMenu(null);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("oportunidades")
+      .update({ arquivada: arquivar, updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) {
+      // Desfaz em caso de falha
+      setOpportunities((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, arquivada: !arquivar } : o))
+      );
+    }
   }
 
   function handleExport() {
@@ -1359,6 +1389,19 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
         </span>
 
         <button
+          onClick={() => setShowArchivedModal(true)}
+          className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer"
+          style={
+            archivedOpportunities.length > 0
+              ? { background: "var(--nav-active-bg)", border: "1px solid var(--nav-active-border)", color: "var(--accent-text)" }
+              : { background: "var(--card-bg)", border: "1px solid var(--card-border)", color: "var(--foreground)" }
+          }
+        >
+          <Archive size={14} />
+          Arquivadas{archivedOpportunities.length > 0 ? ` (${archivedOpportunities.length})` : ""}
+        </button>
+
+        <button
           onClick={handleExport}
           className="flex items-center gap-1.5 px-3 py-2 text-xs rounded-lg transition-colors cursor-pointer"
           style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)", color: "var(--foreground)" }}
@@ -1612,6 +1655,13 @@ style={{ color: "var(--muted)" }}
                               style={{ color: "var(--foreground)" }}
                             >
                               Editar
+                            </button>
+                            <button
+                              onClick={() => handleArchive(opp.id, true)}
+                              className="w-full text-left px-3 py-1.5 text-xs transition-colors cursor-pointer"
+                              style={{ color: "var(--foreground)" }}
+                            >
+                              Arquivar
                             </button>
                             <button
                               onClick={() => {
@@ -2102,6 +2152,77 @@ style={{ color: "var(--muted)" }}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Arquivadas (gaveta de itens arquivados — dado preservado) */}
+      {showArchivedModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div
+            className="rounded-xl p-6 max-w-2xl w-full max-h-[80vh] flex flex-col"
+            style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Archive size={18} style={{ color: "var(--accent-text)" }} />
+                <h3 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
+                  Oportunidades Arquivadas
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowArchivedModal(false)}
+                className="p-1 transition-colors cursor-pointer"
+                style={{ color: "var(--muted)" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
+              Estes itens não aparecem na tabela nem alimentam os gráficos. Os dados ficam
+              preservados e você pode desarquivar a qualquer momento.
+            </p>
+
+            {archivedOpportunities.length === 0 ? (
+              <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
+                Nenhuma oportunidade arquivada.
+              </p>
+            ) : (
+              <div className="overflow-y-auto space-y-2 pr-1">
+                {archivedOpportunities.map((opp) => (
+                  <div
+                    key={opp.id}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg"
+                    style={{ background: "var(--input-bg)", border: "1px solid var(--table-border)" }}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
+                        {opp.cliente}
+                        {opp.produto ? <span style={{ color: "var(--muted)", fontWeight: 400 }}> — {opp.produto}</span> : null}
+                      </p>
+                      <p className="text-[11px]" style={{ color: "var(--muted)" }}>
+                        {opp.responsavel && <span>{opp.responsavel} · </span>}
+                        {opp.status && <span>{opp.status} · </span>}
+                        Upsell {formatCurrency(opp.upsell || 0)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleArchive(opp.id, false)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer hover:opacity-80 flex-shrink-0"
+                      style={{
+                        background: "var(--nav-active-bg)",
+                        color: "var(--accent-text)",
+                        border: "1px solid var(--nav-active-border)",
+                      }}
+                    >
+                      <ArchiveRestore size={13} />
+                      Desarquivar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
