@@ -13,10 +13,33 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
+  Clock,
+  AlertTriangle,
+  Flame,
 } from "lucide-react";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 const LAST_SEEN_KEY = "alertas_last_seen";
+
+// Status encerrados não geram alerta de inatividade
+const CLOSED_STATUSES = new Set(["Fechado", "Assinado", "Perdido", "Proposta Perdida"]);
+
+interface StaleOpp {
+  id: string;
+  cliente: string;
+  produto: string;
+  responsavel: string;
+  status: string;
+  updated_at: string;
+  owner_email: string;
+  arquivada?: boolean;
+  days: number;
+}
+
+function daysSinceUpdate(iso?: string): number {
+  if (!iso) return 0;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
 
 interface AuditRow {
   id: number;
@@ -138,6 +161,7 @@ function FieldDiff({ row }: { row: AuditRow }) {
 
 export default function AlertasPage() {
   const [userEmail, setUserEmail] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [alerts, setAlerts] = useState<AuditRow[]>([]);
   const [filter, setFilter] = useState<"ALL" | AuditRow["action"]>("ALL");
@@ -146,6 +170,9 @@ export default function AlertasPage() {
   const [timelineFor, setTimelineFor] = useState<number | null>(null);
   const [timelineRows, setTimelineRows] = useState<AuditRow[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
+  // Inatividade (todos os usuários, escopo via RLS)
+  const [stale, setStale] = useState<StaleOpp[]>([]);
+  const [openTier, setOpenTier] = useState<number>(30); // 7 | 15 | 30
 
   useEffect(() => {
     const supabase = createClient();
@@ -157,39 +184,50 @@ export default function AlertasPage() {
         window.location.href = "/login";
         return;
       }
-      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        window.location.href = "/overview";
-        return;
-      }
+      const admin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      setIsAdmin(admin);
       setUserEmail(user.email);
 
-      // Feed de alertas: exclui ações do próprio admin (vão só para o histórico)
-      const { data } = await supabase
-        .from("audit_log")
-        .select("*")
-        .neq("actor_email", ADMIN_EMAIL)
-        .order("created_at", { ascending: false })
-        .limit(200);
-      setAlerts((data as AuditRow[]) ?? []);
+      // Alertas de inatividade — RLS já escopa: usuário vê só as dele, admin vê todas
+      const { data: opps } = await supabase
+        .from("oportunidades")
+        .select("id, cliente, produto, responsavel, status, updated_at, arquivada, owner_email");
+      const items = (((opps as unknown) as Omit<StaleOpp, "days">[]) ?? [])
+        .filter((o) => !o.arquivada && !CLOSED_STATUSES.has(o.status))
+        .map((o) => ({ ...o, days: daysSinceUpdate(o.updated_at) }))
+        .filter((o) => o.days >= 7)
+        .sort((a, b) => b.days - a.days);
+      setStale(items);
+
+      if (admin) {
+        // Feed de alterações (somente admin): exclui ações do próprio admin
+        const { data } = await supabase
+          .from("audit_log")
+          .select("*")
+          .neq("actor_email", ADMIN_EMAIL)
+          .order("created_at", { ascending: false })
+          .limit(200);
+        setAlerts((data as AuditRow[]) ?? []);
+
+        // Marca como visto (zera o badge do menu)
+        localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
+        window.dispatchEvent(new Event("alertas-seen"));
+
+        // Tempo real: novos alertas entram no topo sem F5
+        channel = supabase
+          .channel(`alertas-feed-${Date.now()}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "audit_log" },
+            (payload) => {
+              const row = payload.new as AuditRow;
+              if (row.actor_email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
+              setAlerts((prev) => [row, ...prev].slice(0, 200));
+            }
+          )
+          .subscribe();
+      }
       setLoading(false);
-
-      // Marca como visto (zera o badge do menu)
-      localStorage.setItem(LAST_SEEN_KEY, new Date().toISOString());
-      window.dispatchEvent(new Event("alertas-seen"));
-
-      // Tempo real: novos alertas entram no topo sem F5
-      channel = supabase
-        .channel(`alertas-feed-${Date.now()}`)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "audit_log" },
-          (payload) => {
-            const row = payload.new as AuditRow;
-            if (row.actor_email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
-            setAlerts((prev) => [row, ...prev].slice(0, 200));
-          }
-        )
-        .subscribe();
     }
 
     init();
@@ -197,6 +235,10 @@ export default function AlertasPage() {
       if (channel) supabase.removeChannel(channel);
     };
   }, []);
+
+  const stale7 = useMemo(() => stale.filter((o) => o.days >= 7 && o.days < 15), [stale]);
+  const stale15 = useMemo(() => stale.filter((o) => o.days >= 15 && o.days < 30), [stale]);
+  const stale30 = useMemo(() => stale.filter((o) => o.days >= 30), [stale]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -255,11 +297,104 @@ export default function AlertasPage() {
         <div>
           <h1 className="text-xl font-bold" style={{ color: "var(--foreground)" }}>Alertas</h1>
           <p className="text-xs" style={{ color: "var(--muted)" }}>
-            Cadastros, edições e exclusões feitas pelos usuários — com histórico completo
+            {isAdmin
+              ? "Oportunidades paradas + cadastros, edições e exclusões feitas pelos usuários"
+              : "Suas oportunidades paradas sem atualização"}
           </p>
         </div>
       </div>
 
+      {/* Inatividade — para todos (RLS: usuário vê as dele, admin vê todas) */}
+      {(() => {
+        const tiers = [
+          { key: 7, items: stale7, label: "7 a 14 dias sem atualização", color: "#eab308", bg: "rgba(234,179,8,0.12)", Icon: Clock },
+          { key: 15, items: stale15, label: "15 a 29 dias sem atualização", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", Icon: AlertTriangle },
+          { key: 30, items: stale30, label: "30+ dias sem atualização", color: "#ef4444", bg: "rgba(239,68,68,0.12)", Icon: Flame },
+        ];
+        return (
+          <div className="mb-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
+              Oportunidades paradas {isAdmin ? "(de todos os usuários)" : "(suas oportunidades)"}
+            </p>
+            {stale.length === 0 ? (
+              <div
+                className="rounded-xl px-4 py-5 text-center"
+                style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+              >
+                <p className="text-sm" style={{ color: "var(--muted)" }}>
+                  Tudo em dia — nenhuma oportunidade parada há 7+ dias. 🎉
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tiers.map(({ key, items, label, color, bg, Icon }) => (
+                  <div
+                    key={key}
+                    className="rounded-xl overflow-hidden"
+                    style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+                  >
+                    <button
+                      onClick={() => setOpenTier(openTier === key ? -1 : key)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-all hover:opacity-90"
+                    >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: bg }}>
+                        <Icon size={15} style={{ color }} />
+                      </div>
+                      <span className="flex-1 text-sm font-medium" style={{ color: "var(--foreground)" }}>{label}</span>
+                      <span
+                        className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: bg, color }}
+                      >
+                        {items.length}
+                      </span>
+                      {openTier === key ? (
+                        <ChevronUp size={16} style={{ color: "var(--muted)" }} />
+                      ) : (
+                        <ChevronDown size={16} style={{ color: "var(--muted)" }} />
+                      )}
+                    </button>
+                    {openTier === key && items.length > 0 && (
+                      <div className="px-4 pb-3 space-y-1.5" style={{ borderTop: "1px solid var(--table-border)" }}>
+                        {items.map((o) => (
+                          <div
+                            key={o.id}
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs mt-1.5"
+                            style={{ background: "var(--input-bg)", border: "1px solid var(--table-border)" }}
+                          >
+                            <div className="flex-1 min-w-0 truncate" style={{ color: "var(--foreground)" }}>
+                              <span className="font-semibold">{o.cliente}</span>
+                              {o.produto && <span style={{ color: "var(--muted)" }}> — {o.produto}</span>}
+                            </div>
+                            {isAdmin && o.responsavel && (
+                              <span className="flex-shrink-0" style={{ color: "var(--muted)" }}>{o.responsavel}</span>
+                            )}
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-medium flex-shrink-0"
+                              style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)" }}
+                            >
+                              {o.status}
+                            </span>
+                            <span className="font-semibold flex-shrink-0" style={{ color }}>
+                              {o.days}d parada
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Alterações dos usuários — seção exclusiva do admin */}
+      {isAdmin && (
+      <>
+      <p className="text-[11px] font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--muted)" }}>
+        Alterações dos usuários (auditoria completa no banco)
+      </p>
       {/* Filtros + busca */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {(
@@ -427,6 +562,8 @@ export default function AlertasPage() {
             );
           })}
         </div>
+      )}
+      </>
       )}
     </DashboardLayout>
   );

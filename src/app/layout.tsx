@@ -30,10 +30,11 @@ const themeScript = `
         document.documentElement.style.colorScheme = theme.mode;
       }
     } else {
-      document.documentElement.style.colorScheme = 'light';
+      document.documentElement.setAttribute('data-theme-mode', 'dark');
+      document.documentElement.style.colorScheme = 'dark';
     }
   } catch(e) {
-    document.documentElement.style.colorScheme = 'light';
+    document.documentElement.style.colorScheme = 'dark';
   }
 })();
 `;
@@ -49,7 +50,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
       data-palette="violet"
-      data-theme-mode="light"
+      data-theme-mode="dark"
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />

@@ -1,7 +1,8 @@
 "use client";
 // v3 - 2026-09-30: complete visual refactor with gradients + data layer fix + month inputs
 
-import { useEffect, useState, useMemo } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTheme } from "@/lib/theme/ThemeContext";
@@ -142,6 +143,33 @@ const emptyOpportunity: Omit<Opportunity, "id" | "created_at" | "updated_at"> = 
   observacoes_1: "",
   observacoes_2: "",
 };
+
+// Abre o modal de edição ao chegar via /overview?edit=<id> (ex.: clique num alerta do sino)
+function EditDeepLink({
+  opportunities,
+  loading,
+  onOpen,
+}: {
+  opportunities: Opportunity[];
+  loading: boolean;
+  onOpen: (opp: Opportunity) => void;
+}) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const editId = searchParams.get("edit");
+  const handledRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!editId || loading || handledRef.current === editId) return;
+    const opp = opportunities.find((o) => String(o.id) === editId);
+    handledRef.current = editId;
+    // Se a oportunidade não existir mais (ex.: excluída), apenas limpa a URL
+    if (opp) onOpen(opp);
+    router.replace("/overview", { scroll: false });
+  }, [editId, loading, opportunities, onOpen, router]);
+
+  return null;
+}
 
 export default function OverviewPage() {
   const { mode } = useTheme();
@@ -713,6 +741,10 @@ export default function OverviewPage() {
 
   return (
     <DashboardLayout userEmail={userEmail} activeCount={volumePropostas}>
+      {/* Deep-link ?edit=<id>: abre o formulário de edição da oportunidade */}
+      <Suspense fallback={null}>
+        <EditDeepLink opportunities={opportunities} loading={loading} onOpen={openEditModal} />
+      </Suspense>
       {/* ===== DASHBOARD SECTION ===== */}
 
       {/* KPI Cards */}

@@ -35,12 +35,10 @@ const adminNavItems = [
 const upcomingItems = [
   { label: "Recupera", icon: LifeBuoy },
   { label: "Renovações", icon: RefreshCw },
-  { label: "Alertas", icon: Bell },
   { label: "Usuários", icon: Users },
 ];
 
 const adminItems = [
-  { label: "Alertas", href: "/alertas", icon: Bell },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "Usuários", href: "/usuarios", icon: Users },
 ];
@@ -48,6 +46,14 @@ const adminItems = [
 const ALERTS_SEEN_KEY = "alertas_last_seen";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
+
+// Status encerrados não geram alerta de inatividade
+const CLOSED_STATUSES = new Set(["Fechado", "Assinado", "Perdido", "Proposta Perdida"]);
+
+function daysSince(iso?: string): number {
+  if (!iso) return 0;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
 
 export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?: string; activeCount?: number }) {
   const pathname = usePathname();
@@ -73,8 +79,55 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
 
   const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const [alertsCount, setAlertsCount] = useState(0);
+  const [staleCount, setStaleCount] = useState(0);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const alertsRef = useRef<HTMLDivElement>(null);
 
-  // Badge de alertas não vistos (somente admin): conta eventos novos no audit_log
+  interface StaleItem {
+    id: string;
+    cliente: string;
+    produto: string;
+    responsavel: string;
+    status: string;
+    updated_at: string;
+    arquivada?: boolean;
+    days: number;
+  }
+  interface AuditItem {
+    id: number;
+    actor_email: string;
+    record_label: string;
+    action: "INSERT" | "UPDATE" | "DELETE";
+    created_at: string;
+    table_name: string;
+    record_id: string;
+  }
+  const [staleItems, setStaleItems] = useState<StaleItem[]>([]);
+  const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
+
+  // Notificações de inatividade (7+ dias, escopo do usuario via RLS) — todos
+  useEffect(() => {
+    const supabase = createClient();
+    let disposed = false;
+
+    async function loadStale() {
+      const { data } = await supabase
+        .from("oportunidades")
+        .select("id, cliente, produto, responsavel, status, updated_at, arquivada")
+        .order("updated_at", { ascending: true });
+      if (disposed) return;
+      const items = ((data ?? []) as Omit<StaleItem, "days">[])
+        .filter((o) => !o.arquivada && !CLOSED_STATUSES.has(o.status))
+        .map((o) => ({ ...o, days: daysSince(o.updated_at) }))
+        .filter((o) => o.days >= 7);
+      setStaleItems(items);
+      setStaleCount(items.length);
+    }
+    loadStale();
+    return () => { disposed = true; };
+  }, []);
+
+  // Badge extra do admin: eventos novos no audit_log
   useEffect(() => {
     if (!isAdmin) return;
     const supabase = createClient();
@@ -89,6 +142,13 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         .gt("created_at", lastSeen)
         .neq("actor_email", ADMIN_EMAIL);
       if (!disposed) setAlertsCount(count ?? 0);
+      // Itens recentes para o painel do sino
+      const { data } = await supabase
+        .from("audit_log")
+        .select("id, actor_email, record_label, action, created_at, table_name, record_id")
+        .order("created_at", { ascending: false })
+        .limit(6);
+      if (!disposed) setAuditItems((data as AuditItem[]) ?? []);
     }
 
     loadCount();
@@ -124,10 +184,46 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
       if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
         setShowSettings(false);
       }
+      if (alertsRef.current && !alertsRef.current.contains(event.target as Node)) {
+        setShowAlerts(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const totalBadge = alertsCount + staleCount;
+
+  function timeAgoShort(iso: string): string {
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    if (m < 1) return "agora";
+    if (m < 60) return `${m}min`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h`;
+    return `${Math.floor(h / 24)}d`;
+  }
+
+  function staleColor(days: number): string {
+    if (days >= 30) return "#ef4444";
+    if (days >= 15) return "#f59e0b";
+    return "#eab308";
+  }
+
+  const ACTION_VERB: Record<AuditItem["action"], string> = {
+    INSERT: "cadastrou",
+    UPDATE: "editou",
+    DELETE: "excluiu",
+  };
+
+  function toggleAlerts() {
+    const next = !showAlerts;
+    setShowAlerts(next);
+    if (next && isAdmin) {
+      localStorage.setItem(ALERTS_SEEN_KEY, new Date().toISOString());
+      window.dispatchEvent(new Event("alertas-seen"));
+    }
+  }
 
   async function handleLogout() {
     const supabase = createClient();
@@ -166,6 +262,127 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
             Rank CRM
           </h1>
           <p className="text-[10px] leading-tight" style={{ color: "var(--muted)" }}>Gestão de Receita</p>
+        </div>
+
+        {/* Sino de notificações (painel livre) */}
+        <div className="relative ml-auto" ref={alertsRef}>
+          <button
+            onClick={toggleAlerts}
+            className="relative p-2 rounded-lg transition-all cursor-pointer hover:opacity-80"
+            style={{ color: totalBadge > 0 ? "var(--foreground)" : "var(--muted)" }}
+            title="Notificações"
+          >
+            <Bell size={16} />
+            {totalBadge > 0 && (
+              <span
+                className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5"
+                style={{ background: "#ef4444", boxShadow: "0 0 0 2px var(--sidebar-bg)" }}
+              >
+                {totalBadge > 99 ? "99+" : totalBadge}
+              </span>
+            )}
+          </button>
+
+          {/* Painel de notificações */}
+          {showAlerts && (
+            <div
+              className="absolute right-0 top-full mt-2 w-80 rounded-xl overflow-hidden shadow-2xl z-50"
+              style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
+            >
+              <div
+                className="px-4 py-2.5 flex items-center justify-between"
+                style={{ borderBottom: "1px solid var(--card-border)" }}
+              >
+                <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
+                  Notificações
+                </span>
+                {totalBadge > 0 && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>
+                    {totalBadge}
+                  </span>
+                )}
+              </div>
+
+              <div className="max-h-80 overflow-y-auto">
+                {staleItems.length === 0 && auditItems.length === 0 ? (
+                  <p className="text-xs text-center py-6" style={{ color: "var(--muted)" }}>
+                    Sem notificações no momento.
+                  </p>
+                ) : (
+                  <>
+                    {/* Paradas sem atualização (escopo do usuário via RLS) */}
+                    {staleItems.slice(0, 6).map((o) => (
+                      <button
+                        key={`stale-${o.id}`}
+                        onClick={() => { setShowAlerts(false); router.push(`/overview?edit=${o.id}`); }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
+                        style={{ borderBottom: "1px solid var(--card-border)" }}
+                      >
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: `${staleColor(o.days)}22`, color: staleColor(o.days) }}
+                        >
+                          {o.days}d
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs truncate" style={{ color: "var(--foreground)" }}>
+                            <span className="font-semibold">{o.cliente}</span>
+                            {o.produto && <span style={{ color: "var(--muted)" }}> — {o.produto}</span>}
+                          </p>
+                          <p className="text-[10px]" style={{ color: "var(--muted)" }}>
+                            {isAdmin && o.responsavel ? `${o.responsavel} · ` : ""}{o.status} · parada há {o.days} dias
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+
+                    {/* Alterações (somente admin) */}
+                    {isAdmin && auditItems.map((a) => (
+                      <button
+                        key={`audit-${a.id}`}
+                        onClick={() => {
+                          setShowAlerts(false);
+                          // INSERT/UPDATE em oportunidades: abre o formulário de edição do item.
+                          // DELETE ou outra tabela: registro não existe mais → página de alertas.
+                          if (a.table_name === "oportunidades" && a.action !== "DELETE" && a.record_id) {
+                            router.push(`/overview?edit=${a.record_id}`);
+                          } else {
+                            router.push("/alertas");
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
+                        style={{ borderBottom: "1px solid var(--card-border)" }}
+                      >
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0"
+                          style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)" }}
+                        >
+                          {ACTION_VERB[a.action]}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs truncate" style={{ color: "var(--foreground)" }}>
+                            <span className="font-semibold">{a.actor_email ? a.actor_email.split("@")[0] : "sistema"}</span>
+                            <span style={{ color: "var(--muted)" }}> {ACTION_VERB[a.action]} </span>
+                            <span className="font-semibold">{a.record_label || "um item"}</span>
+                          </p>
+                          <p className="text-[10px]" style={{ color: "var(--muted)" }}>{timeAgoShort(a.created_at)} atrás</p>
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                )}
+              </div>
+
+              <Link
+                href="/alertas"
+                onClick={() => setShowAlerts(false)}
+                className="block text-center text-[11px] font-medium py-2.5 transition-all hover:opacity-80"
+                style={{ color: "var(--accent-text)", borderTop: "1px solid var(--card-border)" }}
+              >
+                Ver todos os alertas
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 
@@ -240,18 +457,6 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                 >
                   <item.icon size={16} style={isActive ? { color: "var(--accent-text)" } : undefined} />
                   <span className="flex-1">{item.label}</span>
-                  {item.href === "/alertas" && alertsCount > 0 && (
-                    <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                      style={{
-                        background: "rgba(239,68,68,0.15)",
-                        color: "#ef4444",
-                        border: "1px solid rgba(239,68,68,0.3)",
-                      }}
-                    >
-                      {alertsCount}
-                    </span>
-                  )}
                 </Link>
               );
             })

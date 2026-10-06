@@ -95,7 +95,7 @@ function saveThemeToLocalStorage(paletteId: string, mode: ThemeMode) {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [paletteId, setPaletteIdState] = useState<string>("violet");
-  const [mode, setModeState] = useState<ThemeMode>("light");
+  const [mode, setModeState] = useState<ThemeMode>("dark");
   const [loading, setLoading] = useState(true);
 
   // Initialize theme on mount

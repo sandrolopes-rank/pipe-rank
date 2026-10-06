@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# scripts sql (contem estrutura do banco/dados sensiveis - manter apenas local)
+*.sql
