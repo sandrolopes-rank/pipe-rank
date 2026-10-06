@@ -286,7 +286,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
           {/* Painel de notificações */}
           {showAlerts && (
             <div
-              className="absolute right-0 top-full mt-2 w-80 rounded-xl overflow-hidden shadow-2xl z-50"
+              className="absolute left-0 top-full mt-2 w-80 rounded-xl overflow-hidden shadow-2xl z-50"
               style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}
             >
               <div
