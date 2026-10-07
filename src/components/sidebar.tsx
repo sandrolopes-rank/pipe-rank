@@ -21,6 +21,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/lib/theme/ThemeContext";
+import { APP_VERSION_SHORT } from "@/lib/version";
 
 const navItems = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
@@ -55,31 +56,21 @@ function daysSince(iso?: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 }
 
-export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?: string; activeCount?: number }) {
+export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?: string; activeCount?: number | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const { paletteId, mode, setPaletteId, toggleMode, allPalettes } = useTheme();
   const [showSettings, setShowSettings] = useState(false);
-  const [userEmail, setUserEmail] = useState(propUserEmail || "");
+  const userEmail = propUserEmail ?? "";
   const settingsRef = useRef<HTMLDivElement>(null);
-
-  // Fetch user email from Supabase if not provided via props
-  useEffect(() => {
-    if (!propUserEmail) {
-      async function fetchUser() {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user?.email) {
-          setUserEmail(user.email);
-        }
-      }
-      fetchUser();
-    }
-  }, [propUserEmail]);
 
   const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
   const [alertsCount, setAlertsCount] = useState(0);
   const [staleCount, setStaleCount] = useState(0);
+  // Não-admin não tem nada para carregar; admin também não precisa esperar
+  // o canal realtime para mostrar/esconder o dot — isso só é relevante no
+  // fetch inicial.
+  const [countsLoading, setCountsLoading] = useState(!isAdmin ? false : true);
   const [showAlerts, setShowAlerts] = useState(false);
   const alertsRef = useRef<HTMLDivElement>(null);
 
@@ -111,17 +102,21 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     let disposed = false;
 
     async function loadStale() {
-      const { data } = await supabase
-        .from("oportunidades")
-        .select("id, cliente, produto, responsavel, status, updated_at, arquivada")
-        .order("updated_at", { ascending: true });
-      if (disposed) return;
-      const items = ((data ?? []) as Omit<StaleItem, "days">[])
-        .filter((o) => !o.arquivada && !CLOSED_STATUSES.has(o.status))
-        .map((o) => ({ ...o, days: daysSince(o.updated_at) }))
-        .filter((o) => o.days >= 7);
-      setStaleItems(items);
-      setStaleCount(items.length);
+      try {
+        const { data } = await supabase
+          .from("oportunidades")
+          .select("id, cliente, produto, responsavel, status, updated_at, arquivada")
+          .order("updated_at", { ascending: true });
+        if (disposed) return;
+        const items = ((data ?? []) as Omit<StaleItem, "days">[])
+          .filter((o) => !o.arquivada && !CLOSED_STATUSES.has(o.status))
+          .map((o) => ({ ...o, days: daysSince(o.updated_at) }))
+          .filter((o) => o.days >= 7);
+        setStaleItems(items);
+        setStaleCount(items.length);
+      } finally {
+        if (!disposed) setCountsLoading(false);
+      }
     }
     loadStale();
     return () => { disposed = true; };
@@ -135,20 +130,24 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     async function loadCount() {
-      const lastSeen = localStorage.getItem(ALERTS_SEEN_KEY) ?? new Date(0).toISOString();
-      const { count } = await supabase
-        .from("audit_log")
-        .select("id", { count: "exact", head: true })
-        .gt("created_at", lastSeen)
-        .neq("actor_email", ADMIN_EMAIL);
-      if (!disposed) setAlertsCount(count ?? 0);
-      // Itens recentes para o painel do sino
-      const { data } = await supabase
-        .from("audit_log")
-        .select("id, actor_email, record_label, action, created_at, table_name, record_id")
-        .order("created_at", { ascending: false })
-        .limit(6);
-      if (!disposed) setAuditItems((data as AuditItem[]) ?? []);
+      try {
+        const lastSeen = localStorage.getItem(ALERTS_SEEN_KEY) ?? new Date(0).toISOString();
+        const { count } = await supabase
+          .from("audit_log")
+          .select("id", { count: "exact", head: true })
+          .gt("created_at", lastSeen)
+          .neq("actor_email", ADMIN_EMAIL);
+        if (!disposed) setAlertsCount(count ?? 0);
+        // Itens recentes para o painel do sino
+        const { data } = await supabase
+          .from("audit_log")
+          .select("id, actor_email, record_label, action, created_at, table_name, record_id")
+          .order("created_at", { ascending: false })
+          .limit(6);
+        if (!disposed) setAuditItems((data as AuditItem[]) ?? []);
+      } finally {
+        if (!disposed) setCountsLoading(false);
+      }
     }
 
     loadCount();
@@ -239,10 +238,13 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         borderRight: "1px solid var(--sidebar-border)",
       }}
     >
-      {/* Logo */}
-      <div className="px-5 py-5 flex items-center gap-3" style={{ borderBottom: "1px solid var(--sidebar-border)" }}>
+      {/* Logo / Header — grid fixo 3 colunas para não pular durante o fetch */}
+      <div
+        className="grid grid-cols-[auto_1fr_auto] items-center gap-3 px-4 py-4 min-h-[72px]"
+        style={{ borderBottom: "1px solid var(--sidebar-border)" }}
+      >
         <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg"
+          className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0"
           style={{
             background: `linear-gradient(135deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
             boxShadow: `0 4px 12px rgba(0, 0, 0, 0.3)`,
@@ -250,36 +252,56 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         >
           <Briefcase size={16} className="text-white" />
         </div>
-        <div>
-          <h1
-            className="text-sm font-bold leading-tight"
-            style={{
-              background: `linear-gradient(90deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            Rank CRM
-          </h1>
-          <p className="text-[10px] leading-tight" style={{ color: "var(--muted)" }}>Gestão de Receita</p>
+
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <h1
+              className="text-sm font-bold leading-tight whitespace-nowrap truncate"
+              style={{
+                background: `linear-gradient(90deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              Rank CRM
+            </h1>
+            <span
+              className="text-[9px] font-medium select-none flex-shrink-0"
+              style={{ color: "var(--muted)" }}
+              title={`Rank CRM ${APP_VERSION_SHORT}`}
+            >
+              {APP_VERSION_SHORT}
+            </span>
+          </div>
+          <p className="text-[10px] leading-tight truncate" style={{ color: "var(--muted)" }}>
+            Gestão de Receita
+          </p>
         </div>
 
         {/* Sino de notificações (painel livre) */}
-        <div className="relative ml-auto" ref={alertsRef}>
+        <div className="relative flex-shrink-0" ref={alertsRef}>
           <button
             onClick={toggleAlerts}
-            className="relative p-2 rounded-lg transition-all cursor-pointer hover:opacity-80"
+            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all cursor-pointer hover:opacity-80"
             style={{ color: totalBadge > 0 ? "var(--foreground)" : "var(--muted)" }}
             title="Notificações"
           >
             <Bell size={16} />
-            {totalBadge > 0 && (
+            {countsLoading ? (
               <span
-                className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white rounded-full min-w-[15px] h-[15px] flex items-center justify-center px-0.5"
-                style={{ background: "#ef4444", boxShadow: "0 0 0 2px var(--sidebar-bg)" }}
-              >
-                {totalBadge > 99 ? "99+" : totalBadge}
-              </span>
+                aria-hidden
+                className="absolute top-1 right-1 w-2 h-2 rounded-full animate-pulse"
+                style={{ background: "var(--muted)" }}
+              />
+            ) : (
+              totalBadge > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center tabular-nums"
+                  style={{ background: "#ef4444" }}
+                >
+                  {totalBadge > 99 ? "99+" : totalBadge}
+                </span>
+              )
             )}
           </button>
 
@@ -411,23 +433,34 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
             >
               <item.icon size={16} style={isActive ? { color: "var(--accent-text)" } : undefined} />
               <span className="flex-1">{item.label}</span>
-              {item.href === "/overview" && activeCount !== undefined && activeCount > 0 && (
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                  style={{
-                    background: "var(--nav-active-bg)",
-                    color: "var(--accent-text)",
-                    border: "1px solid var(--nav-active-border)",
-                  }}
-                >
-                  {activeCount}
-                </span>
+              {item.href === "/overview" && activeCount !== undefined && (
+                activeCount === null ? (
+                  <span
+                    aria-hidden
+                    className="w-2 h-2 rounded-full animate-pulse flex-shrink-0"
+                    style={{ background: "var(--muted)" }}
+                  />
+                ) : activeCount > 0 ? (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center tabular-nums flex-shrink-0"
+                    style={{
+                      background: "var(--nav-active-bg)",
+                      color: "var(--accent-text)",
+                      border: "1px solid var(--nav-active-border)",
+                    }}
+                  >
+                    {activeCount > 99 ? "99+" : activeCount}
+                  </span>
+                ) : null
               )}
             </Link>
           );
         })}
 
-        <div className="pt-4 pb-2 px-3">
+        <div
+          className="pt-3 pb-1 px-3 mt-2"
+          style={{ borderTop: "1px solid var(--sidebar-border)" }}
+        >
           <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
             {isAdmin ? "Admin" : "Em Breve"}
           </span>
@@ -487,13 +520,30 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                 background: `linear-gradient(135deg, var(--logo-gradient-from), var(--logo-gradient-to))`,
               }}
             >
-              {userEmail ? userEmail.charAt(0).toUpperCase() : "U"}
+              {userEmail ? userEmail.charAt(0).toUpperCase() : (
+                <span className="block w-3 h-3 rounded-full animate-pulse" style={{ background: "rgba(255,255,255,0.4)" }} aria-hidden />
+              )}
             </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>
-                {userEmail ? userEmail.split("@")[0] : "Usuário"}
-              </p>
-              <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{userEmail || ""}</p>
+              {userEmail ? (
+                <>
+                  <p className="text-xs font-medium truncate" style={{ color: "var(--foreground)" }}>
+                    {userEmail.split("@")[0]}
+                  </p>
+                  <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{userEmail}</p>
+                </>
+              ) : (
+                <>
+                  <p
+                    className="h-3 w-24 rounded animate-pulse mb-1.5"
+                    style={{ background: "var(--muted)", opacity: 0.3 }}
+                    aria-hidden />
+                  <p
+                    className="h-2 w-32 rounded animate-pulse"
+                    style={{ background: "var(--muted)", opacity: 0.2 }}
+                    aria-hidden />
+                </>
+              )}
             </div>
             <ChevronDown
               size={12}

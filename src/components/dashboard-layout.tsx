@@ -18,7 +18,7 @@ export function DashboardLayout({
         <Sidebar userEmail={userEmail} activeCount={activeCount} />
       </div>
       <main className="flex-1 lg:ml-56">
-        <div className="p-4 lg:p-6 max-w-[1400px] mx-auto">{children}</div>
+        <div className="w-full lg:w-[90%] mx-auto p-4 lg:p-6">{children}</div>
         {/* Footer */}
         <footer className="py-6 text-center" style={{ borderTop: "1px solid var(--table-border)" }}>
           <p className="text-xs" style={{ color: "var(--muted)" }}>

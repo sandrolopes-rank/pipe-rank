@@ -215,7 +215,6 @@ export default function OverviewPage() {
     calor: true,
     mes_atuacao: true,
     status: true,
-    proposta_em: true,
     data_fechamento: true,
     observacoes_1: false,
     observacoes_2: false,
@@ -223,6 +222,7 @@ export default function OverviewPage() {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showProdutoDropdown, setShowProdutoDropdown] = useState(false);
   const [showPropostasModal, setShowPropostasModal] = useState(false);
+  const [showCalorModal, setShowCalorModal] = useState<"Quente" | "Morno" | "Frio" | null>(null);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<string>("");
@@ -390,6 +390,66 @@ export default function OverviewPage() {
   const calorFrio = activeOpportunities
     .filter((o) => o.calor === "Frio")
     .reduce((s, o) => s + (o.upsell || 0), 0);
+
+  // Relação detalhada de propostas ativas (cliente | produto | upsell | mês fechamento)
+  // Ordenada por upsell desc — alimenta o modal do card "Propostas em Andamento".
+  const propostasDetalhadas = activeOpportunities
+    .map((o) => ({
+      id: o.id,
+      cliente: o.cliente,
+      produto: o.produto,
+      upsell: o.upsell || 0,
+      data_fechamento: o.data_fechamento,
+    }))
+    .sort((a, b) => b.upsell - a.upsell);
+
+  // Distribuição de status entre as propostas ativas (para a barra de proporção do card)
+  const statusDistribution = (() => {
+    const grouped: Record<string, number> = {};
+    activeOpportunities.forEach((o) => {
+      if (o.status) grouped[o.status] = (grouped[o.status] || 0) + 1;
+    });
+    return Object.entries(grouped)
+      .sort(([, a], [, b]) => b - a)
+      .map(([status, count]) => ({ status, count }));
+  })();
+
+  // Clientes por calor (para o modal de detalhe do Mapa de Calor)
+  const clientesPorCalor = useMemo(() => {
+    const groups: Record<string, typeof activeOpportunities> = { Quente: [], Morno: [], Frio: [] };
+    activeOpportunities.forEach((o) => {
+      if (groups[o.calor]) groups[o.calor].push(o);
+    });
+    return {
+      Quente: groups.Quente
+        .map((o) => ({
+          id: o.id,
+          cliente: o.cliente,
+          produto: o.produto,
+          upsell: o.upsell || 0,
+          data_fechamento: o.data_fechamento,
+        }))
+        .sort((a, b) => b.upsell - a.upsell),
+      Morno: groups.Morno
+        .map((o) => ({
+          id: o.id,
+          cliente: o.cliente,
+          produto: o.produto,
+          upsell: o.upsell || 0,
+          data_fechamento: o.data_fechamento,
+        }))
+        .sort((a, b) => b.upsell - a.upsell),
+      Frio: groups.Frio
+        .map((o) => ({
+          id: o.id,
+          cliente: o.cliente,
+          produto: o.produto,
+          upsell: o.upsell || 0,
+          data_fechamento: o.data_fechamento,
+        }))
+        .sort((a, b) => b.upsell - a.upsell),
+    };
+  }, [activeOpportunities]);
 
   // Chart data - Upsell por mês (active opportunities only)
   const chartDataUpsell = (() => {
@@ -733,8 +793,7 @@ export default function OverviewPage() {
     calor: "Calor",
     mes_atuacao: "Mês Atuação",
     status: "Status",
-    proposta_em: "Proposta em",
-    data_fechamento: "Data prevista de fechamento",
+    data_fechamento: "Previsão de fechamento",
     observacoes_1: "Observações 1",
     observacoes_2: "Observações 2",
   };
@@ -751,7 +810,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Card 1: Upsell + Cross Sell Negociado */}
         <div
-          className="relative overflow-hidden rounded-2xl p-5 group"
+          className="relative overflow-hidden rounded-2xl p-5 group flex flex-col"
           style={{
             background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
             border: "1px solid var(--card-border)",
@@ -781,55 +840,68 @@ export default function OverviewPage() {
               <BarChart3 size={16} style={{ color: "var(--accent-text)" }} />
             </div>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: "var(--muted)" }}>Upsell</span>
-              <p
-                className="text-xl font-bold tracking-tight"
+          <div className="relative flex-1 flex flex-col gap-2.5 min-h-0">
+            {[
+              {
+                label: "Upsell",
+                value: upsellNegociado,
+                gradFrom: "#8b5cf633",
+                gradTo: "#8b5cf611",
+                border: "#8b5cf644",
+                barColor: "#8b5cf6",
+                valueColor: "#a78bfa",
+              },
+              {
+                label: "Cross Sell",
+                value: crossSellNegociado,
+                gradFrom: "#06b6d433",
+                gradTo: "#06b6d411",
+                border: "#06b6d444",
+                barColor: "#06b6d4",
+                valueColor: "#22d3ee",
+              },
+            ].map((row) => (
+              <div
+                key={row.label}
+                className="flex-1 flex flex-col justify-center rounded-lg px-4 py-3 min-h-0"
                 style={{
-                  background: "linear-gradient(90deg, #c4b5fd, #8b5cf6)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  background: `linear-gradient(90deg, ${row.gradFrom}, ${row.gradTo})`,
+                  border: `1px solid ${row.border}`,
+                  borderLeft: `3px solid ${row.barColor}`,
                 }}
               >
-                {formatCurrency(upsellNegociado)}
-              </p>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs" style={{ color: "var(--muted)" }}>Cross Sell</span>
-              <p
-                className="text-xl font-bold tracking-tight"
-                style={{
-                  background: "linear-gradient(90deg, #67e8f9, #06b6d4)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                {formatCurrency(crossSellNegociado)}
-              </p>
-            </div>
+                <span className="text-xs block mb-1" style={{ color: "var(--muted)" }}>{row.label}</span>
+                <p
+                  className="text-lg font-bold tracking-tight"
+                  style={{ color: row.valueColor }}
+                >
+                  {formatCurrency(row.value)}
+                </p>
+              </div>
+            ))}
           </div>
           {upsellTrend !== 0 && (
-            <div className="flex items-center gap-1 mt-2">
+            <div className="flex items-center gap-1 mt-3">
               <span
                 className="text-xs font-medium"
                 style={{ color: upsellTrend > 0 ? "#34d399" : "#f87171" }}
               >
                 {upsellTrend > 0 ? "↑" : "↓"} {Math.abs(upsellTrend).toFixed(1)}%
               </span>
-              <span className="text-[10px]" style={{ color: "var(--muted)" }}>vs mês anterior</span>
+              <span className="text-[10px]" style={{ color: "var(--muted)" }}>vs mês anterior (Upsell)</span>
             </div>
           )}
         </div>
 
-        {/* Card 2: Propostas em Andamento com Top 3 Produtos */}
-        <div
-          className="relative overflow-hidden rounded-2xl p-5 group cursor-pointer transition-colors"
+        {/* Card 2: Propostas em Andamento (clique para detalhe) */}
+        <button
+          type="button"
+          onClick={() => setShowPropostasModal(true)}
+          className="relative overflow-hidden rounded-2xl p-5 group cursor-pointer text-left transition-colors hover:opacity-95 flex flex-col"
           style={{
             background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
             border: "1px solid var(--card-border)",
           }}
-          onClick={() => setShowPropostasModal(true)}
         >
           <div
             className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-20 pointer-events-none"
@@ -841,7 +913,7 @@ export default function OverviewPage() {
               <div className="relative group/tip">
                 <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
-                  Top 3 produtos por upsell negociado (clique para ver todos)
+                  Distribuição por status nas propostas ativas (clique para ver a relação completa)
                 </div>
               </div>
             </div>
@@ -855,32 +927,82 @@ export default function OverviewPage() {
               <Target size={16} style={{ color: "var(--warning)" }} />
             </div>
           </div>
-          <p
-            className="text-2xl font-bold tracking-tight mb-3"
-            style={{
-              background: "linear-gradient(90deg, #fde68a, #f59e0b)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            {volumePropostas}
-          </p>
-          <div className="space-y-1.5">
-            {topProdutos.length > 0 ? (
-              topProdutos.map((item, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="truncate max-w-[120px]" style={{ color: "var(--muted)" }}>{item.produto}</span>
-                  <span className="text-amber-400 font-medium">{formatCurrency(item.value)}</span>
-                </div>
-              ))
+
+          {/* Barra de proporção: igual ao padrão do Mapa de Calor */}
+          {(() => {
+            const total = volumePropostas;
+            if (total === 0) return null;
+            const palette = [
+              "#f59e0b", "#8b5cf6", "#10b981", "#0ea5e9", "#ec4899",
+              "#f43f5e", "#14b8a6", "#a855f7", "#eab308", "#06b6d4",
+            ];
+            return (
+              <div
+                className="flex h-1.5 rounded-full overflow-hidden mb-3"
+                style={{ background: "var(--input-bg)" }}
+              >
+                {statusDistribution.map((s, i) => {
+                  const pct = (s.count / total) * 100;
+                  if (pct === 0) return null;
+                  const color = palette[i % palette.length];
+                  return (
+                    <div
+                      key={s.status}
+                      style={{ width: `${pct}%`, background: color, transition: "width 0.5s" }}
+                      title={`${s.status}: ${s.count}`}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Lista de status (uma linha por status, padrão do Mapa de Calor) */}
+          <div className="relative flex-1 flex flex-col gap-2.5 min-h-0">
+            {statusDistribution.length === 0 ? (
+              <p className="text-xs" style={{ color: "var(--muted)" }}>Nenhuma proposta ativa</p>
             ) : (
-              <p className="text-xs" style={{ color: "var(--muted)" }}>Nenhum produto ativo</p>
+              statusDistribution.slice(0, 4).map((s, idx) => {
+                const palette = [
+                  { color: "#facc15", gradFrom: "#f59e0b33", gradTo: "#f59e0b11", border: "#f59e0b44" },
+                  { color: "#a78bfa", gradFrom: "#8b5cf633", gradTo: "#8b5cf611", border: "#8b5cf644" },
+                  { color: "#34d399", gradFrom: "#10b98133", gradTo: "#10b98111", border: "#10b98144" },
+                  { color: "#38bdf8", gradFrom: "#0ea5e933", gradTo: "#0ea5e911", border: "#0ea5e944" },
+                ];
+                const colors = palette[idx % palette.length];
+                const upsellDoStatus = activeOpportunities
+                  .filter((o) => o.status === s.status)
+                  .reduce((acc, o) => acc + (o.upsell || 0), 0);
+                return (
+                  <div
+                    key={s.status}
+                    className="flex items-center justify-between rounded-lg px-3 py-2 min-h-0"
+                    style={{
+                      background: `linear-gradient(90deg, ${colors.gradFrom}, ${colors.gradTo})`,
+                      border: `1px solid ${colors.border}`,
+                    }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="text-xs font-bold rounded-full min-w-[20px] text-center flex-shrink-0"
+                        style={{ color: colors.color }}
+                      >
+                        {s.count}
+                      </span>
+                      <span className="text-xs truncate" style={{ color: "var(--muted)" }}>{s.status}</span>
+                    </div>
+                    <span className="text-xs font-bold flex-shrink-0 ml-2" style={{ color: colors.color }}>
+                      {formatCurrency(upsellDoStatus)}
+                    </span>
+                  </div>
+                );
+              })
             )}
           </div>
-        </div>
+        </button>
         {/* Mapa de Calor Card */}
         <div
-          className="relative overflow-hidden rounded-2xl p-5 group"
+          className="relative overflow-hidden rounded-2xl p-5 group flex flex-col"
           style={{
             background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
             border: "1px solid var(--card-border)",
@@ -910,7 +1032,7 @@ export default function OverviewPage() {
               <Flame size={16} style={{ color: "var(--accent-text)" }} />
             </div>
           </div>
-          <div className="relative space-y-2.5">
+          <div className="relative flex-1 flex flex-col gap-2.5 min-h-0">
             {/* Proportion bar (item 3) */}
             {(() => {
               const total = calorQuente + calorMorno + calorFrio;
@@ -933,28 +1055,33 @@ export default function OverviewPage() {
                 </div>
               );
             })()}
-            {[
-              { icon: Flame, label: "Quente", value: calorQuente, color: "#f87171", gradFrom: "#ef444433", gradTo: "#ef444411", border: "#ef444444" },
-              { icon: Thermometer, label: "Morno", value: calorMorno, color: "#fbbf24", gradFrom: "#f59e0b33", gradTo: "#f59e0b11", border: "#f59e0b44" },
-              { icon: Snowflake, label: "Frio", value: calorFrio, color: "#38bdf8", gradFrom: "#0ea5e933", gradTo: "#0ea5e911", border: "#0ea5e944" },
-            ].map((row) => (
-              <div
-                key={row.label}
-                className="flex items-center justify-between rounded-lg px-3 py-2"
-                style={{
-                  background: `linear-gradient(90deg, ${row.gradFrom}, ${row.gradTo})`,
-                  border: `1px solid ${row.border}`,
-                }}
-              >
-                <div className="flex items-center gap-2">
-                  <row.icon size={12} style={{ color: row.color }} />
-                  <span className="text-xs" style={{ color: "var(--muted)" }}>{row.label}</span>
-                </div>
-                <span className="text-sm font-bold" style={{ color: row.color }}>
-                  {formatCurrency(row.value)}
-                </span>
-              </div>
-            ))}
+            <div className="flex-1 flex flex-col gap-2.5 min-h-0">
+              {[
+                { icon: Flame, label: "Quente", calor: "Quente" as const, value: calorQuente, color: "#f87171", gradFrom: "#ef444433", gradTo: "#ef444411", border: "#ef444444" },
+                { icon: Thermometer, label: "Morno", calor: "Morno" as const, value: calorMorno, color: "#fbbf24", gradFrom: "#f59e0b33", gradTo: "#f59e0b11", border: "#f59e0b44" },
+                { icon: Snowflake, label: "Frio", calor: "Frio" as const, value: calorFrio, color: "#38bdf8", gradFrom: "#0ea5e933", gradTo: "#0ea5e911", border: "#0ea5e944" },
+              ].map((row) => (
+                <button
+                  key={row.label}
+                  type="button"
+                  onClick={() => setShowCalorModal(row.calor)}
+                  disabled={row.value === 0}
+                  className="flex-1 flex items-center justify-between rounded-lg px-3 py-2 text-left transition-opacity hover:opacity-90 cursor-pointer disabled:cursor-default disabled:hover:opacity-100 min-h-0"
+                  style={{
+                    background: `linear-gradient(90deg, ${row.gradFrom}, ${row.gradTo})`,
+                    border: `1px solid ${row.border}`,
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <row.icon size={12} style={{ color: row.color }} />
+                    <span className="text-xs" style={{ color: "var(--muted)" }}>{row.label}</span>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: row.color }}>
+                    {formatCurrency(row.value)}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -1620,15 +1747,6 @@ style={{ color: "var(--muted)" }}
                         </span>
                       </td>
                     )}
-                    {visibleColumns.proposta_em && (
-                      <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
-                        {opp.proposta_em ? (() => {
-                          const [year, month] = opp.proposta_em.split("-");
-                          const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-                          return `${months[parseInt(month) - 1]}/${year.slice(2)}`;
-                        })() : ""}
-                      </td>
-                    )}
                     {visibleColumns.data_fechamento && (
                       <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>
                         {opp.data_fechamento ? (() => {
@@ -1781,14 +1899,19 @@ style={{ color: "var(--muted)" }}
         </div>
       </div>
 
-      {/* Propostas em Andamento Modal */}
+      {/* Propostas em Andamento Modal — relação completa de clientes */}
       {showPropostasModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="rounded-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+          <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
-              <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
-                Produtos Negociados - Relação Completa
-              </h2>
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
+                  Propostas em Andamento
+                </h2>
+                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                  Excluindo status Fechado, Perdido, Assinado e Proposta Perdida • {propostasDetalhadas.length} proposta(s) • Upsell total {formatCurrency(propostasDetalhadas.reduce((s, p) => s + p.upsell, 0))}
+                </p>
+              </div>
               <button
                 onClick={() => setShowPropostasModal(false)}
                 className="transition-colors cursor-pointer"
@@ -1797,34 +1920,135 @@ style={{ color: "var(--muted)" }}
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6">
-              <p className="text-xs mb-4" style={{ color: "var(--muted)" }}>
-                Excluindo status Fechado e Perdido • {allProdutos.length} produto(s)
-              </p>
-              {allProdutos.length > 0 ? (
-                <div className="space-y-2">
-                  {allProdutos.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between px-4 py-3 rounded-lg"
-                      style={{ background: "var(--input-bg)", border: "1px solid var(--card-border)" }}
-                    >
-                      <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{item.produto}</span>
-                      <span className="text-sm font-bold" style={{ color: "var(--warning)" }}>
-                        {formatCurrency(item.value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            <div className="overflow-y-auto flex-1">
+              {propostasDetalhadas.length > 0 ? (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b" style={{ borderColor: "var(--table-border)", background: "var(--input-bg)" }}>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Cliente</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Produto</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Upsell</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Mês Fechamento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {propostasDetalhadas.map((p) => (
+                      <tr
+                        key={p.id}
+                        className="border-b hover:opacity-90 cursor-pointer"
+                        style={{ borderColor: "var(--table-border)" }}
+                        onClick={() => {
+                          const opp = activeOpportunities.find((o) => o.id === p.id);
+                          if (opp) {
+                            setShowPropostasModal(false);
+                            openEditModal(opp);
+                          }
+                        }}
+                      >
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{p.cliente || "—"}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>{p.produto || "—"}</td>
+                        <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: "var(--warning)" }}>
+                          {formatCurrency(p.upsell)}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-right" style={{ color: "var(--muted)" }}>
+                          {p.data_fechamento ? (() => {
+                            const [year, month] = p.data_fechamento.split("-");
+                            const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+                            return `${months[parseInt(month) - 1]}/${year.slice(2)}`;
+                          })() : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
-                  Nenhum produto ativo no momento
+                  Nenhuma proposta ativa no momento
                 </p>
               )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Mapa de Calor — Modal de detalhe por temperatura */}
+      {showCalorModal && (() => {
+        const items = clientesPorCalor[showCalorModal];
+        const calorTotal = items.reduce((s, i) => s + i.upsell, 0);
+        const calorColor = showCalorModal === "Quente" ? "#ef4444" : showCalorModal === "Morno" ? "#f59e0b" : "#0ea5e9";
+        const calorLightText = showCalorModal === "Quente" ? "#f87171" : showCalorModal === "Morno" ? "#fbbf24" : "#38bdf8";
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+                <div>
+                  <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                    <Flame size={18} style={{ color: calorColor }} />
+                    Clientes — {showCalorModal}
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    {items.length} cliente(s) • Soma do upsell: {formatCurrency(calorTotal)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCalorModal(null)}
+                  className="transition-colors cursor-pointer"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                {items.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: "var(--table-border)", background: "var(--input-bg)" }}>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Cliente</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Produto</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Upsell</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Previsão</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="border-b hover:opacity-90 cursor-pointer"
+                          style={{ borderColor: "var(--table-border)" }}
+                          onClick={() => {
+                            const opp = activeOpportunities.find((o) => o.id === p.id);
+                            if (opp) {
+                              setShowCalorModal(null);
+                              openEditModal(opp);
+                            }
+                          }}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{p.cliente || "—"}</td>
+                          <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>{p.produto || "—"}</td>
+                          <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: calorLightText }}>
+                            {formatCurrency(p.upsell)}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-right" style={{ color: "var(--muted)" }}>
+                            {p.data_fechamento ? (() => {
+                              const [year, month] = p.data_fechamento.split("-");
+                              const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+                              return `${months[parseInt(month) - 1]}/${year.slice(2)}`;
+                            })() : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
+                    Nenhum cliente com calor {showCalorModal}.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Create/Edit Modal */}
       {showModal && (
@@ -2160,7 +2384,43 @@ style={{ color: "var(--muted)" }}
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex items-center gap-3 pt-2">
+                {editingOpportunity && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleArchive(editingOpportunity.id, !editingOpportunity.arquivada);
+                        setShowModal(false);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer hover:opacity-80"
+                      style={{
+                        background: "var(--input-bg)",
+                        border: "1px solid var(--input-border)",
+                        color: "var(--foreground)",
+                      }}
+                    >
+                      {editingOpportunity.arquivada ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                      {editingOpportunity.arquivada ? "Desarquivar" : "Arquivar"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteConfirm(editingOpportunity.id);
+                        setShowModal(false);
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg transition-colors cursor-pointer hover:opacity-90"
+                      style={{
+                        background: "var(--danger)",
+                        color: "#ffffff",
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      Excluir
+                    </button>
+                  </>
+                )}
+                <div className="flex-1" />
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
