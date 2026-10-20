@@ -21,8 +21,9 @@ export async function POST(request: NextRequest) {
     }
 
     const headers: Record<string, string> = { Accept: "application/json" };
-    if (typeof apiKey === "string" && apiKey.trim()) {
-      headers.Authorization = `Bearer ${apiKey.trim()}`;
+    const key = typeof apiKey === "string" && apiKey.trim() ? apiKey.trim() : process.env.ELEPHAN_API_KEY;
+    if (key) {
+      headers.Authorization = `Bearer ${key}`;
     }
 
     const started = Date.now();

@@ -23,6 +23,17 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import { APP_VERSION_SHORT } from "@/lib/version";
+import {
+  carregarMes,
+  lerCacheMes,
+  cacheFresca,
+  avaliarAlertaReuniao,
+  fetchElephan,
+  normNome,
+  type ElephanAlerta,
+  type ElephanTranscribeComSinais,
+  type ElephanTranscribeResumo,
+} from "@/lib/elephan";
 
 const navItems = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
@@ -96,6 +107,9 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   }
   const [staleItems, setStaleItems] = useState<StaleItem[]>([]);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
+  // Alertas da Elephan (sentimentação/churn) — somente admin
+  const [elephanAlertas, setElephanAlertas] = useState<ElephanAlerta[]>([]);
+  const [elephanSeen, setElephanSeen] = useState<Set<string>>(new Set());
 
   // Carrega do navegador as notificações já abertas individualmente.
   // Adiado para microtask: setState síncrono dentro de effect não é permitido (react-hooks).
@@ -108,6 +122,90 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
       }
     });
   }, []);
+
+  // Alertas da Elephan (somente admin): sentimento negativo dominante + churn
+  // signals das reuniões do mês, respeitando o que já foi marcado como lido
+  // no quadro da página /elephan. Cache-first: reusa o cache do navegador.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let disposed = false;
+    (async () => {
+      await Promise.resolve();
+      try {
+        const now = new Date();
+        const inicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const fim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
+        let apiKey = "";
+        try {
+          apiKey = localStorage.getItem("elephan_api_key") ?? "";
+        } catch {
+          // proxy usa a chave do .env
+        }
+
+        // cache-first: reusa o cache do navegador quando fresco
+        const cache = lerCacheMes(inicio.substring(0, 7));
+        let itens: ElephanTranscribeResumo[];
+        if (cache && cacheFresca(cache.ts)) {
+          itens = cache.itens;
+        } else {
+          const r = await carregarMes(inicio, fim, apiKey, { maxPaginas: 3 });
+          if (disposed) return;
+          itens = r.itens;
+        }
+
+        // reuniões com negativo dominante ainda não vistas no quadro
+        let seen: Set<string> = new Set();
+        try {
+          seen = new Set(JSON.parse(localStorage.getItem("elephan_alerts_seen") ?? "[]"));
+        } catch {
+          // storage indisponível
+        }
+        const pendentes = itens.filter(
+          (o) =>
+            !seen.has(`${o.id}:sentimento`) &&
+            (() => {
+              const totals = o.sentimentAnalysis?.totalSentiment ?? [];
+              const neg = totals.find((t) => (t.sentimental ?? "").toUpperCase() === "NEGATIVE");
+              const pos = totals.find((t) => (t.sentimental ?? "").toUpperCase() === "POSITIVE");
+              return neg && (neg.perc ?? 0) >= 40 && (!pos || (pos.perc ?? 0) < (neg.perc ?? 0));
+            })()
+        );
+
+        // detalhes apenas das pendentes (churn signals vivem em reasons[])
+        const detalhes = new Map<string, ElephanTranscribeComSinais>();
+        const filas = [...pendentes.map((o) => o.id)];
+        await Promise.all(
+          Array.from({ length: 4 }, async () => {
+            while (filas.length > 0) {
+              const id = filas.shift()!;
+              try {
+                const body = await fetchElephan(`/v1/transcribes/${id}`, apiKey);
+                if (body?.data) detalhes.set(id, body.data as ElephanTranscribeComSinais);
+              } catch {
+                // falha individual não derruba o lote
+              }
+            }
+          })
+        );
+        if (disposed) return;
+
+        const alertas: ElephanAlerta[] = [];
+        pendentes.forEach((o) => {
+          const det = detalhes.get(o.id);
+          alertas.push(...avaliarAlertaReuniao(det ? ({ ...o, ...det } as ElephanTranscribeResumo) : o));
+        });
+        if (!disposed) {
+          setElephanAlertas(alertas);
+          setElephanSeen(seen);
+        }
+      } catch {
+        // silencioso: o sino apenas não mostra alertas da Elephan
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, [isAdmin]);
 
   // Notificações de inatividade (7+ dias, escopo do usuario via RLS) — todos
   useEffect(() => {
@@ -218,7 +316,25 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   );
   // Badge vermelho do sino = notificações não lidas: diminui uma a uma conforme
   // cada notificação é aberta, e some quando todas foram visualizadas.
-  const totalUnread = unreadStale.length + (isAdmin ? unreadAudit.length : 0);
+  // Inclui os alertas da Elephan (sentimentação/churn, admin) não lidos no quadro.
+  const elephanNaoLidos = elephanAlertas.filter((a) => !elephanSeen.has(a.chave)).length;
+  const totalUnread = unreadStale.length + (isAdmin ? unreadAudit.length : 0) + elephanNaoLidos;
+
+  // Reação ao quadro da página /elephan: quando o admin marca os alertas como
+  // lidos lá, o sino recomputa o badge na hora (sem refetch)
+  useEffect(() => {
+    const handler = () => {
+      try {
+        const seen = new Set<string>(JSON.parse(localStorage.getItem("elephan_alerts_seen") ?? "[]"));
+        setElephanSeen(seen);
+        setElephanAlertas((prev) => prev.filter((a) => !seen.has(a.chave)));
+      } catch {
+        // storage indisponível
+      }
+    };
+    window.addEventListener("elephan-alertas-lidos", handler);
+    return () => window.removeEventListener("elephan-alertas-lidos", handler);
+  }, []);
 
   function timeAgoShort(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -349,7 +465,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
               </div>
 
               <div className="max-h-80 overflow-y-auto">
-                {staleItems.length === 0 && auditItems.length === 0 ? (
+                {staleItems.length === 0 && auditItems.length === 0 && elephanAlertas.length === 0 ? (
                   <p className="text-xs text-center py-6" style={{ color: "var(--muted)" }}>
                     Sem notificações no momento.
                   </p>
@@ -387,6 +503,47 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                         )}
                       </button>
                     ))}
+
+                    {/* Alertas da Elephan (sentimentação/churn — somente admin) */}
+                    {isAdmin && elephanAlertas.length > 0 && (
+                      <>
+                        <div className="px-4 pt-2 pb-1">
+                          <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+                            Elephan.AI
+                          </span>
+                        </div>
+                        {elephanAlertas.map((a) => (
+                          <button
+                            key={a.chave}
+                            onClick={() => { setShowAlerts(false); router.push("/elephan?alertas=1"); window.dispatchEvent(new Event("elephan-abrir-quadro")); }}
+                            className="relative w-full flex items-start gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
+                            style={{ borderBottom: "1px solid var(--card-border)" }}
+                            title="Abrir painel de alertas da Elephan"
+                          >
+                            <span
+                              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 mt-0.5"
+                              style={{
+                                background: a.severidade === "critica" ? "rgba(239, 68, 68, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                                color: a.severidade === "critica" ? "#f87171" : "#fbbf24",
+                              }}
+                            >
+                              {a.tipo === "churn" ? "Churn" : "Sent."}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs truncate" style={{ color: "var(--foreground)" }}>
+                                <span className="font-semibold">{a.titulo}</span>
+                              </p>
+                              <p className="text-[10px] truncate" style={{ color: "var(--muted)" }}>{a.descricao}</p>
+                              {a.data && (
+                                <p className="text-[10px]" style={{ color: "var(--muted)", opacity: 0.8 }}>
+                                  {a.data.substring(0, 10).split("-").reverse().join("/")}
+                                </p>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </>
+                    )}
 
                     {/* Alterações (somente admin) */}
                     {isAdmin && auditItems.map((a) => (

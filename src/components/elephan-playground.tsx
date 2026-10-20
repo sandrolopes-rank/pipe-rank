@@ -65,7 +65,8 @@ export function ElephanPlayground() {
 
   const ep = ENDPOINTS[selected];
   const hasPathParam = Boolean(ep.pathParam);
-  const needsKey = !ep.path.startsWith("/health");
+  const isHealth = ep.path.startsWith("/health");
+  const needsKey = !isHealth;
 
   // Restaura chave salva
   useEffect(() => {
@@ -179,7 +180,7 @@ export function ElephanPlayground() {
             />
             <button
               onClick={() => setShowKey((s) => !s)}
-              className="absolute right-2.5 cursor-pointer"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 cursor-pointer"
               style={{ color: "var(--muted)" }}
               title={showKey ? "Ocultar" : "Mostrar"}
             >
@@ -200,7 +201,7 @@ export function ElephanPlayground() {
       </div>
 
       {/* Endpoint + parâmetros */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className={`grid grid-cols-1 ${hasPathParam || !isHealth ? "md:grid-cols-2" : ""} gap-3`}>
         <div>
           <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "var(--muted)" }}>
             Endpoint
@@ -225,35 +226,39 @@ export function ElephanPlayground() {
             {ep.desc}
           </p>
         </div>
-        <div className="space-y-3">
-          {hasPathParam && (
-            <div>
-              <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "var(--muted)" }}>
-                Parâmetro de rota: {`{${ep.pathParam}}`}
-              </label>
-              <input
-                value={pathParam}
-                onChange={(e) => setPathParam(e.target.value)}
-                placeholder="UUID / ObjectId"
-                className="w-full text-xs rounded-lg px-3 py-2 outline-none font-mono"
-                style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
-              />
-            </div>
-          )}
-          <div>
-            <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "var(--muted)" }}>
-              Query string {ep.requiredQuery ? "(obrigatória)" : "(opcional)"}
-              {ep.requiredQuery ? ` — ${ep.requiredQuery.join(", ")}` : ""}
-            </label>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="ex.: page=1&limit=20 ou email=joao@empresa.com"
-              className="w-full text-xs rounded-lg px-3 py-2 outline-none font-mono"
-              style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
-            />
+        {(hasPathParam || !isHealth) && (
+          <div className="space-y-3">
+            {hasPathParam && (
+              <div>
+                <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "var(--muted)" }}>
+                  Parâmetro de rota: {`{${ep.pathParam}}`}
+                </label>
+                <input
+                  value={pathParam}
+                  onChange={(e) => setPathParam(e.target.value)}
+                  placeholder="UUID / ObjectId"
+                  className="w-full text-xs rounded-lg px-3 py-2 outline-none font-mono"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                />
+              </div>
+            )}
+            {!isHealth && (
+              <div>
+                <label className="text-[11px] font-semibold block mb-1.5" style={{ color: "var(--muted)" }}>
+                  Query string {ep.requiredQuery ? "(obrigatória)" : "(opcional)"}
+                  {ep.requiredQuery ? ` — ${ep.requiredQuery.join(", ")}` : ""}
+                </label>
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="ex.: page=1&limit=20 ou email=joao@empresa.com"
+                  className="w-full text-xs rounded-lg px-3 py-2 outline-none font-mono"
+                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                />
+              </div>
+            )}
           </div>
-        </div>
+        )}
       </div>
 
       {/* Executar */}
