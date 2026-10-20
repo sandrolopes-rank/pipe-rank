@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   Circle,
 } from "lucide-react";
+import { ElephanPlayground } from "@/components/elephan-playground";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
@@ -225,6 +226,9 @@ export default function ElephanPage() {
             </div>
           </div>
         </div>
+
+        {/* API Playground */}
+        <ElephanPlayground />
 
         {/* Descoberta da API — domínios de dados */}
         <div>

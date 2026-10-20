@@ -510,14 +510,14 @@ export default function OverviewPage() {
         if (o.data_fechamento) {
           const month = o.data_fechamento.substring(0, 7);
           if (!grouped[month]) grouped[month] = { value: 0, count: 0, clients: [], items: [] };
-          grouped[month].value += (o.receita_negociacao || 0);
+          grouped[month].value += (o.upsell || 0);
           grouped[month].count += 1;
           if (o.cliente) grouped[month].clients.push(o.cliente);
           grouped[month].items.push({
             id: o.id,
             cliente: o.cliente,
             produto: o.produto,
-            valor: o.receita_negociacao || 0,
+            valor: o.upsell || 0,
             status: o.status,
             data_fechamento: o.data_fechamento,
           });
@@ -595,7 +595,7 @@ export default function OverviewPage() {
   } | null>(null);
   const chartSlides = [
     { key: "upsell", label: "Upsell por Mês", data: chartDataUpsell, color: "#8b5cf6", gradientFrom: "#8b5cf680", gradientTo: "#8b5cf600", accent: "text-violet-400", valorLabel: "Upsell" },
-    { key: "fechadas", label: "Negociações Fechadas", data: chartDataFechadas, color: "#10b981", gradientFrom: "#10b98180", gradientTo: "#10b98100", accent: "text-emerald-400", valorLabel: "Receita" },
+    { key: "fechadas", label: "Negociações Fechadas", data: chartDataFechadas, color: "#10b981", gradientFrom: "#10b98180", gradientTo: "#10b98100", accent: "text-emerald-400", valorLabel: "Upsell" },
     { key: "perdidas", label: "Negociações Perdidas", data: chartDataPerdidas, color: "#f43f5e", gradientFrom: "#f43f5e80", gradientTo: "#f43f5e00", accent: "text-rose-400", valorLabel: "Upsell" },
   ];
 
@@ -1253,6 +1253,10 @@ export default function OverviewPage() {
                         <stop offset="0%" stopColor={currentSlide.color} stopOpacity={0.9} />
                         <stop offset="100%" stopColor={currentSlide.color} stopOpacity={0.4} />
                       </linearGradient>
+                      <linearGradient id={`gradient-${currentSlide.key}-neg`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f43f5e" stopOpacity={0.9} />
+                        <stop offset="100%" stopColor="#f43f5e" stopOpacity={0.4} />
+                      </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--table-border)" vertical={false} />
                     <XAxis
@@ -1285,10 +1289,11 @@ export default function OverviewPage() {
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         const item = payload[0].payload as any;
+                        const itemColor = Number(item.value) < 0 ? "#f43f5e" : currentSlide.color;
                         return (
                           <div style={{ padding: "10px 14px", minWidth: "180px" }}>
                             <p style={{ color: "#e5e5e5", marginBottom: 6, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{label}</p>
-                            <p style={{ color: currentSlide.color, fontWeight: 700, marginBottom: 8, fontSize: 14, textShadow: `0 0 8px ${currentSlide.color}50` }}>
+                            <p style={{ color: itemColor, fontWeight: 700, marginBottom: 8, fontSize: 14, textShadow: `0 0 8px ${itemColor}50` }}>
                               {formatCurrency(Number(item.value))}
                             </p>
                             {item.count !== undefined && (
@@ -1327,6 +1332,16 @@ export default function OverviewPage() {
                         });
                       }}
                     >
+                      {data.map((entry: { value?: number }, idx: number) => {
+                        const negative = (entry.value ?? 0) < 0;
+                        return (
+                          <Cell
+                            key={`cell-${idx}`}
+                            fill={negative ? `url(#gradient-${currentSlide.key}-neg)` : `url(#gradient-${currentSlide.key})`}
+                            radius={negative ? "0 0 6 6" : "6 6 0 0"}
+                          />
+                        );
+                      })}
                       <LabelList
                         dataKey="value"
                         position="top"
