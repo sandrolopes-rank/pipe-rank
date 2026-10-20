@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "version:check": "node scripts/version.mjs --check",
+    "version:update": "node scripts/version.mjs --write"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

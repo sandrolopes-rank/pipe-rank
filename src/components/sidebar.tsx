@@ -11,6 +11,7 @@ import {
   Bell,
   BarChart3,
   Users,
+  Sparkles,
   LogOut,
   Sun,
   Moon,
@@ -31,12 +32,13 @@ const navItems = [
 const adminNavItems = [
   { label: "Recupera", href: "/recupera", icon: LifeBuoy },
   { label: "Renovações", href: "/renovacoes", icon: RefreshCw },
+  { label: "Elephan.AI", href: "/elephan", icon: Sparkles },
 ];
 
 const upcomingItems = [
   { label: "Recupera", icon: LifeBuoy },
   { label: "Renovações", icon: RefreshCw },
-  { label: "Usuários", icon: Users },
+  { label: "Elephan.AI", icon: Sparkles },
 ];
 
 const adminItems = [
@@ -44,7 +46,8 @@ const adminItems = [
   { label: "Usuários", href: "/usuarios", icon: Users },
 ];
 
-const ALERTS_SEEN_KEY = "alertas_last_seen";
+// Itens de notificação já abertos individualmente (chave -> ref de updated_at/created_at)
+const READ_MAP_KEY = "alertas_read_v1";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
@@ -65,12 +68,10 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   const settingsRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  const [alertsCount, setAlertsCount] = useState(0);
-  const [staleCount, setStaleCount] = useState(0);
-  // Não-admin não tem nada para carregar; admin também não precisa esperar
-  // o canal realtime para mostrar/esconder o dot — isso só é relevante no
-  // fetch inicial.
-  const [countsLoading, setCountsLoading] = useState(!isAdmin ? false : true);
+  // Notificações já abertas individualmente (a bolinha amarela some ao clicar)
+  const [readMap, setReadMap] = useState<Record<string, string>>({});
+  // Dot de carregamento até o fetch inicial de notificações resolver
+  const [countsLoading, setCountsLoading] = useState(true);
   const [showAlerts, setShowAlerts] = useState(false);
   const alertsRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +97,18 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   const [staleItems, setStaleItems] = useState<StaleItem[]>([]);
   const [auditItems, setAuditItems] = useState<AuditItem[]>([]);
 
+  // Carrega do navegador as notificações já abertas individualmente.
+  // Adiado para microtask: setState síncrono dentro de effect não é permitido (react-hooks).
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      try {
+        setReadMap(JSON.parse(localStorage.getItem(READ_MAP_KEY) ?? "{}"));
+      } catch {
+        // mapa corrompido: recomeça vazio
+      }
+    });
+  }, []);
+
   // Notificações de inatividade (7+ dias, escopo do usuario via RLS) — todos
   useEffect(() => {
     const supabase = createClient();
@@ -113,7 +126,6 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
           .map((o) => ({ ...o, days: daysSince(o.updated_at) }))
           .filter((o) => o.days >= 7);
         setStaleItems(items);
-        setStaleCount(items.length);
       } finally {
         if (!disposed) setCountsLoading(false);
       }
@@ -129,15 +141,8 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     let disposed = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    async function loadCount() {
+    async function loadAudit() {
       try {
-        const lastSeen = localStorage.getItem(ALERTS_SEEN_KEY) ?? new Date(0).toISOString();
-        const { count } = await supabase
-          .from("audit_log")
-          .select("id", { count: "exact", head: true })
-          .gt("created_at", lastSeen)
-          .neq("actor_email", ADMIN_EMAIL);
-        if (!disposed) setAlertsCount(count ?? 0);
         // Itens recentes para o painel do sino
         const { data } = await supabase
           .from("audit_log")
@@ -150,7 +155,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
       }
     }
 
-    loadCount();
+    loadAudit();
 
     channel = supabase
       .channel(`alertas-badge-${Date.now()}`)
@@ -158,22 +163,16 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "audit_log" },
         (payload) => {
-          const actor = (payload.new as { actor_email?: string }).actor_email;
-          if (actor?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
-          setAlertsCount((c) => c + 1);
+          const row = payload.new as AuditItem;
+          if (row.actor_email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return;
+          setAuditItems((prev) => [row, ...prev].slice(0, 6));
         }
       )
       .subscribe();
 
-    function handleSeen() {
-      setAlertsCount(0);
-    }
-    window.addEventListener("alertas-seen", handleSeen);
-
     return () => {
       disposed = true;
       if (channel) supabase.removeChannel(channel);
-      window.removeEventListener("alertas-seen", handleSeen);
     };
   }, [isAdmin]);
 
@@ -191,7 +190,35 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const totalBadge = alertsCount + staleCount;
+  // Marca um item como aberto (some a bolinha amarela e reduz os contadores)
+  function markRead(key: string, ref: string) {
+    setReadMap((prev) => {
+      if (prev[key] === ref) return prev;
+      const next = { ...prev, [key]: ref };
+      try {
+        localStorage.setItem(READ_MAP_KEY, JSON.stringify(next));
+      } catch {
+        // storage indisponível: mantém apenas nesta sessão
+      }
+      return next;
+    });
+  }
+
+  const staleKey = (id: string) => `stale-${id}`;
+  const auditKey = (id: number) => `audit-${id}`;
+  const isOwnAction = (a: AuditItem) =>
+    a.actor_email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+  // Não abertas individualmente (bolinha amarela). O painel mostra no máximo 6
+  // itens de inatividade; a contagem considera os itens visíveis para que cada
+  // clique reduza o badge do sino até zerar.
+  const unreadStale = staleItems.slice(0, 6).filter((o) => readMap[staleKey(o.id)] !== o.updated_at);
+  const unreadAudit = auditItems.filter(
+    (a) => !isOwnAction(a) && readMap[auditKey(a.id)] !== a.created_at
+  );
+  // Badge vermelho do sino = notificações não lidas: diminui uma a uma conforme
+  // cada notificação é aberta, e some quando todas foram visualizadas.
+  const totalUnread = unreadStale.length + (isAdmin ? unreadAudit.length : 0);
 
   function timeAgoShort(iso: string): string {
     const diff = Date.now() - new Date(iso).getTime();
@@ -216,12 +243,8 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   };
 
   function toggleAlerts() {
-    const next = !showAlerts;
-    setShowAlerts(next);
-    if (next && isAdmin) {
-      localStorage.setItem(ALERTS_SEEN_KEY, new Date().toISOString());
-      window.dispatchEvent(new Event("alertas-seen"));
-    }
+    // Abrir o sino NÃO zera o badge: ele diminui conforme cada notificação é aberta
+    setShowAlerts((s) => !s);
   }
 
   async function handleLogout() {
@@ -283,7 +306,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
           <button
             onClick={toggleAlerts}
             className="flex items-center justify-center w-8 h-8 rounded-lg transition-all cursor-pointer hover:opacity-80"
-            style={{ color: totalBadge > 0 ? "var(--foreground)" : "var(--muted)" }}
+            style={{ color: totalUnread > 0 ? "var(--foreground)" : "var(--muted)" }}
             title="Notificações"
           >
             <Bell size={16} />
@@ -294,12 +317,12 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                 style={{ background: "var(--muted)" }}
               />
             ) : (
-              totalBadge > 0 && (
+              totalUnread > 0 && (
                 <span
                   className="absolute -top-0.5 -right-0.5 text-[9px] font-bold text-white rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center tabular-nums"
                   style={{ background: "#ef4444" }}
                 >
-                  {totalBadge > 99 ? "99+" : totalBadge}
+                  {totalUnread > 99 ? "99+" : totalUnread}
                 </span>
               )
             )}
@@ -318,9 +341,9 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                 <span className="text-xs font-semibold" style={{ color: "var(--foreground)" }}>
                   Notificações
                 </span>
-                {totalBadge > 0 && (
+                {totalUnread > 0 && (
                   <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444" }}>
-                    {totalBadge}
+                    {totalUnread}
                   </span>
                 )}
               </div>
@@ -336,8 +359,8 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                     {staleItems.slice(0, 6).map((o) => (
                       <button
                         key={`stale-${o.id}`}
-                        onClick={() => { setShowAlerts(false); router.push(`/overview?edit=${o.id}`); }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
+                        onClick={() => { markRead(staleKey(o.id), o.updated_at); setShowAlerts(false); router.push(`/overview?edit=${o.id}`); }}
+                        className="relative w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
                         style={{ borderBottom: "1px solid var(--card-border)" }}
                       >
                         <span
@@ -355,6 +378,13 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                             {isAdmin && o.responsavel ? `${o.responsavel} · ` : ""}{o.status} · parada há {o.days} dias
                           </p>
                         </div>
+                        {readMap[staleKey(o.id)] !== o.updated_at && (
+                          <span
+                            aria-hidden
+                            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                            style={{ background: "#eab308" }}
+                          />
+                        )}
                       </button>
                     ))}
 
@@ -363,6 +393,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                       <button
                         key={`audit-${a.id}`}
                         onClick={() => {
+                          markRead(auditKey(a.id), a.created_at);
                           setShowAlerts(false);
                           // INSERT/UPDATE em oportunidades: abre o formulário de edição do item.
                           // DELETE ou outra tabela: registro não existe mais → página de alertas.
@@ -372,7 +403,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                             router.push("/alertas");
                           }
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
+                        className="relative w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all cursor-pointer hover:opacity-80"
                         style={{ borderBottom: "1px solid var(--card-border)" }}
                       >
                         <span
@@ -389,6 +420,13 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                           </p>
                           <p className="text-[10px]" style={{ color: "var(--muted)" }}>{timeAgoShort(a.created_at)} atrás</p>
                         </div>
+                        {!isOwnAction(a) && readMap[auditKey(a.id)] !== a.created_at && (
+                          <span
+                            aria-hidden
+                            className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                            style={{ background: "#eab308" }}
+                          />
+                        )}
                       </button>
                     ))}
                   </>

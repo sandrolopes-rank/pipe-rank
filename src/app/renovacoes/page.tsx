@@ -9,6 +9,8 @@ const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
 export default function RenovacoesPage() {
   const [allowed, setAllowed] = useState(false);
+  // Email do usuario logado: mantem a sidebar em modo admin
+  const [userEmail, setUserEmail] = useState("");
 
   // Pagina em "Em Breve" para usuarios comuns: somente admin acessa
   useEffect(() => {
@@ -23,6 +25,7 @@ export default function RenovacoesPage() {
         window.location.href = "/overview";
         return;
       }
+      setUserEmail(user.email);
       setAllowed(true);
     }
     check();
@@ -30,7 +33,7 @@ export default function RenovacoesPage() {
 
   if (!allowed) {
     return (
-      <DashboardLayout>
+      <DashboardLayout userEmail={userEmail}>
         <div className="flex items-center justify-center py-20">
           <Loader2 size={24} className="animate-spin" style={{ color: "var(--muted)" }} />
         </div>
@@ -39,7 +42,7 @@ export default function RenovacoesPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userEmail={userEmail}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

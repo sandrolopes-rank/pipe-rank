@@ -67,6 +67,8 @@ export default function RecuperaPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Email do usuario logado: mantem a sidebar em modo admin
+  const [userEmail, setUserEmail] = useState("");
 
   // Form state
   const [formData, setFormData] = useState<Partial<Recovery>>({
@@ -97,6 +99,7 @@ export default function RecuperaPage() {
         window.location.href = "/overview";
         return;
       }
+      setUserEmail(user.email);
       loadData();
     }
     guardAndLoad();
@@ -217,7 +220,7 @@ export default function RecuperaPage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
+      <DashboardLayout userEmail={userEmail}>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "var(--accent)" }} />
         </div>
@@ -226,7 +229,7 @@ export default function RecuperaPage() {
   }
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userEmail={userEmail}>
       <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

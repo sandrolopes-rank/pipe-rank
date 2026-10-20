@@ -222,6 +222,7 @@ export default function OverviewPage() {
   const [showColumnPicker, setShowColumnPicker] = useState(false);
   const [showProdutoDropdown, setShowProdutoDropdown] = useState(false);
   const [showPropostasModal, setShowPropostasModal] = useState(false);
+  const [showNegociadosModal, setShowNegociadosModal] = useState(false);
   const [showCalorModal, setShowCalorModal] = useState<"Quente" | "Morno" | "Frio" | null>(null);
 
   // Filters
@@ -399,7 +400,23 @@ export default function OverviewPage() {
       cliente: o.cliente,
       produto: o.produto,
       upsell: o.upsell || 0,
+      status: o.status,
       data_fechamento: o.data_fechamento,
+    }))
+    .sort((a, b) => b.upsell - a.upsell);
+
+  // Relação de clientes e produtos negociados (alimenta o modal do card
+  // "Upsell / Cross Sell Negociado"): oportunidades ativas com valor negociado,
+  // classificadas em Upsell (MI, RI, Features) ou Cross Sell (demais produtos).
+  const negociadosDetalhados = activeOpportunities
+    .filter((o) => (o.upsell || 0) > 0)
+    .map((o) => ({
+      id: o.id,
+      cliente: o.cliente,
+      produto: o.produto,
+      upsell: o.upsell || 0,
+      tipo: (isUpsellProduct(o.produto) ? "Upsell" : "Cross Sell") as "Upsell" | "Cross Sell",
+      status: o.status,
     }))
     .sort((a, b) => b.upsell - a.upsell);
 
@@ -453,13 +470,21 @@ export default function OverviewPage() {
 
   // Chart data - Upsell por mês (active opportunities only)
   const chartDataUpsell = (() => {
-    const grouped: Record<string, { value: number; clients: string[] }> = {};
+    const grouped: Record<string, { value: number; clients: string[]; items: ChartDetailItem[] }> = {};
     activeOpportunities.forEach((o) => {
       if (o.data_fechamento) {
         const month = o.data_fechamento.substring(0, 7);
-        if (!grouped[month]) grouped[month] = { value: 0, clients: [] };
+        if (!grouped[month]) grouped[month] = { value: 0, clients: [], items: [] };
         grouped[month].value += (o.upsell || 0);
         if (o.cliente) grouped[month].clients.push(o.cliente);
+        grouped[month].items.push({
+          id: o.id,
+          cliente: o.cliente,
+          produto: o.produto,
+          valor: o.upsell || 0,
+          status: o.status,
+          data_fechamento: o.data_fechamento,
+        });
       }
     });
     return Object.entries(grouped)
@@ -472,21 +497,30 @@ export default function OverviewPage() {
         })(),
         value: data.value,
         clients: data.clients,
+        items: data.items,
       }));
   })();
 
   // Chart data - Negociações Fechadas por mês (status === "Fechado" or "Assinado")
   const chartDataFechadas = (() => {
-    const grouped: Record<string, { value: number; count: number; clients: string[] }> = {};
+    const grouped: Record<string, { value: number; count: number; clients: string[]; items: ChartDetailItem[] }> = {};
     visibleOpportunities
       .filter((o) => o.status === "Fechado" || o.status === "Assinado")
       .forEach((o) => {
         if (o.data_fechamento) {
           const month = o.data_fechamento.substring(0, 7);
-          if (!grouped[month]) grouped[month] = { value: 0, count: 0, clients: [] };
+          if (!grouped[month]) grouped[month] = { value: 0, count: 0, clients: [], items: [] };
           grouped[month].value += (o.receita_negociacao || 0);
           grouped[month].count += 1;
           if (o.cliente) grouped[month].clients.push(o.cliente);
+          grouped[month].items.push({
+            id: o.id,
+            cliente: o.cliente,
+            produto: o.produto,
+            valor: o.receita_negociacao || 0,
+            status: o.status,
+            data_fechamento: o.data_fechamento,
+          });
         }
       });
     return Object.entries(grouped)
@@ -500,21 +534,30 @@ export default function OverviewPage() {
         value: data.value,
         count: data.count,
         clients: data.clients,
+        items: data.items,
       }));
   })();
 
   // Chart data - Negociações Perdidas por mês (status === "Perdido" or "Proposta Perdida")
   const chartDataPerdidas = (() => {
-    const grouped: Record<string, { value: number; count: number; clients: string[] }> = {};
+    const grouped: Record<string, { value: number; count: number; clients: string[]; items: ChartDetailItem[] }> = {};
     visibleOpportunities
       .filter((o) => o.status === "Perdido" || o.status === "Proposta Perdida")
       .forEach((o) => {
         if (o.data_fechamento) {
           const month = o.data_fechamento.substring(0, 7);
-          if (!grouped[month]) grouped[month] = { value: 0, count: 0, clients: [] };
+          if (!grouped[month]) grouped[month] = { value: 0, count: 0, clients: [], items: [] };
           grouped[month].value += (o.upsell || 0);
           grouped[month].count += 1;
           if (o.cliente) grouped[month].clients.push(o.cliente);
+          grouped[month].items.push({
+            id: o.id,
+            cliente: o.cliente,
+            produto: o.produto,
+            valor: o.upsell || 0,
+            status: o.status,
+            data_fechamento: o.data_fechamento,
+          });
         }
       });
     return Object.entries(grouped)
@@ -528,15 +571,32 @@ export default function OverviewPage() {
         value: data.value,
         count: data.count,
         clients: data.clients,
+        items: data.items,
       }));
   })();
 
   // Chart carousel state
   const [chartSlide, setChartSlide] = useState(0);
+  // Detalhe por coluna do gráfico: clientes contabilizados no mês clicado
+  interface ChartDetailItem {
+    id: string;
+    cliente: string;
+    produto: string;
+    valor: number;
+    status: string;
+    data_fechamento: string;
+  }
+  const [chartDetail, setChartDetail] = useState<{
+    label: string;
+    month: string;
+    color: string;
+    valorLabel: string;
+    items: ChartDetailItem[];
+  } | null>(null);
   const chartSlides = [
-    { key: "upsell", label: "Upsell por Mês", data: chartDataUpsell, color: "#8b5cf6", gradientFrom: "#8b5cf680", gradientTo: "#8b5cf600", accent: "text-violet-400" },
-    { key: "fechadas", label: "Negociações Fechadas", data: chartDataFechadas, color: "#10b981", gradientFrom: "#10b98180", gradientTo: "#10b98100", accent: "text-emerald-400" },
-    { key: "perdidas", label: "Negociações Perdidas", data: chartDataPerdidas, color: "#f43f5e", gradientFrom: "#f43f5e80", gradientTo: "#f43f5e00", accent: "text-rose-400" },
+    { key: "upsell", label: "Upsell por Mês", data: chartDataUpsell, color: "#8b5cf6", gradientFrom: "#8b5cf680", gradientTo: "#8b5cf600", accent: "text-violet-400", valorLabel: "Upsell" },
+    { key: "fechadas", label: "Negociações Fechadas", data: chartDataFechadas, color: "#10b981", gradientFrom: "#10b98180", gradientTo: "#10b98100", accent: "text-emerald-400", valorLabel: "Receita" },
+    { key: "perdidas", label: "Negociações Perdidas", data: chartDataPerdidas, color: "#f43f5e", gradientFrom: "#f43f5e80", gradientTo: "#f43f5e00", accent: "text-rose-400", valorLabel: "Upsell" },
   ];
 
   // Days since last update per opportunity
@@ -808,9 +868,11 @@ export default function OverviewPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-        {/* Card 1: Upsell + Cross Sell Negociado */}
+        {/* Card 1: Upsell + Cross Sell Negociado (clique para detalhe) */}
         <div
-          className="relative overflow-hidden rounded-2xl p-5 group flex flex-col"
+          onClick={() => setShowNegociadosModal(true)}
+          title="Ver clientes e produtos negociados"
+          className="relative overflow-hidden rounded-2xl p-5 group flex flex-col cursor-pointer transition-opacity hover:opacity-95"
           style={{
             background: `linear-gradient(135deg, var(--card-bg) 0%, var(--background) 60%)`,
             border: "1px solid var(--card-border)",
@@ -826,7 +888,7 @@ export default function OverviewPage() {
               <div className="relative group/tip">
                 <Info size={12} style={{ color: "var(--muted)" }} className="cursor-help" />
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap opacity-0 invisible group-hover/tip:opacity-100 group-hover/tip:visible transition-all z-50 shadow-lg" style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}>
-                  Upsell: MI, RI, Features | Cross Sell: demais produtos
+                  Upsell: MI, RI, Features | Cross Sell: demais produtos • clique no card para ver a relação completa
                 </div>
               </div>
             </div>
@@ -1247,7 +1309,24 @@ export default function OverviewPage() {
                         );
                       }}
                     />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={44} fill={`url(#gradient-${currentSlide.key})`}>
+                    <Bar
+                      dataKey="value"
+                      radius={[6, 6, 0, 0]}
+                      maxBarSize={44}
+                      fill={`url(#gradient-${currentSlide.key})`}
+                      cursor="pointer"
+                      onClick={(barEntry: unknown) => {
+                        const payload = (barEntry as { payload?: { month: string; items: ChartDetailItem[] } })?.payload;
+                        if (!payload?.items?.length) return;
+                        setChartDetail({
+                          label: currentSlide.label,
+                          month: payload.month,
+                          color: currentSlide.color,
+                          valorLabel: currentSlide.valorLabel,
+                          items: payload.items,
+                        });
+                      }}
+                    >
                       <LabelList
                         dataKey="value"
                         position="top"
@@ -1900,76 +1979,320 @@ style={{ color: "var(--muted)" }}
       </div>
 
       {/* Propostas em Andamento Modal — relação completa de clientes */}
-      {showPropostasModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
-            <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
-              <div>
-                <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
-                  Propostas em Andamento
-                </h2>
-                <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
-                  Excluindo status Fechado, Perdido, Assinado e Proposta Perdida • {propostasDetalhadas.length} proposta(s) • Upsell total {formatCurrency(propostasDetalhadas.reduce((s, p) => s + p.upsell, 0))}
-                </p>
+      {showPropostasModal && (() => {
+        const propostasTotal = propostasDetalhadas.reduce((s, p) => s + p.upsell, 0);
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
+                    Propostas em Andamento
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    {propostasDetalhadas.length} proposta(s) • Upsell total {formatCurrency(propostasTotal)} • excluindo Fechado, Perdido, Assinado e Proposta Perdida
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowPropostasModal(false)}
+                  className="transition-colors cursor-pointer"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={() => setShowPropostasModal(false)}
-                className="transition-colors cursor-pointer"
-                style={{ color: "var(--muted)" }}
-              >
-                <X size={20} />
-              </button>
+              <div className="overflow-y-auto flex-1">
+                {propostasDetalhadas.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: "var(--table-border)", background: "var(--input-bg)" }}>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Cliente</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Produto</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Status</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Upsell</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Mês Fechamento</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {propostasDetalhadas.map((p) => (
+                        <tr
+                          key={p.id}
+                          className="border-b hover:opacity-90 cursor-pointer"
+                          style={{ borderColor: "var(--table-border)" }}
+                          onClick={() => {
+                            const opp = activeOpportunities.find((o) => o.id === p.id);
+                            if (opp) {
+                              setShowPropostasModal(false);
+                              openEditModal(opp);
+                            }
+                          }}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{p.cliente || "—"}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-wrap gap-1">
+                              {(p.produto || "—").split(", ").filter(Boolean).map((chip) => (
+                                <span
+                                  key={chip}
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                  style={{
+                                    background: "color-mix(in srgb, var(--warning) 12%, transparent)",
+                                    color: "var(--warning)",
+                                    border: "1px solid color-mix(in srgb, var(--warning) 25%, transparent)",
+                                  }}
+                                >
+                                  {chip}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${statusColors[p.status] ?? ""}`}
+                              style={!statusColors[p.status] ? { background: "var(--input-bg)", color: "var(--muted)" } : undefined}
+                            >
+                              {p.status || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: "var(--warning)" }}>
+                            {formatCurrency(p.upsell)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {p.data_fechamento ? (() => {
+                              const [year, month] = p.data_fechamento.split("-");
+                              const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+                              return (
+                                <span
+                                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                  style={{ background: "var(--input-bg)", color: "var(--muted)", border: "1px solid var(--table-border)" }}
+                                >
+                                  {`${months[parseInt(month) - 1]}/${year.slice(2)}`}
+                                </span>
+                              );
+                            })() : (
+                              <span className="text-xs" style={{ color: "var(--muted)" }}>—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "var(--input-bg)" }}>
+                        <td className="px-4 py-3 text-xs font-semibold" colSpan={3} style={{ color: "var(--muted)" }}>
+                          Upsell total em andamento
+                        </td>
+                        <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: "var(--warning)" }}>
+                          {formatCurrency(propostasTotal)}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                ) : (
+                  <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
+                    Nenhuma proposta ativa no momento
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="overflow-y-auto flex-1">
-              {propostasDetalhadas.length > 0 ? (
+          </div>
+        );
+      })()}
+
+      {/* Upsell / Cross Sell Negociado — Modal de clientes e produtos negociados */}
+      {showNegociadosModal && (() => {
+        const upsellTotal = negociadosDetalhados.filter((n) => n.tipo === "Upsell").reduce((s, n) => s + n.upsell, 0);
+        const crossTotal = negociadosDetalhados.filter((n) => n.tipo === "Cross Sell").reduce((s, n) => s + n.upsell, 0);
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+                <div>
+                  <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
+                    Clientes e Produtos Negociados
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    {negociadosDetalhados.length} negociação(ões) • Upsell {formatCurrency(upsellTotal)} • Cross Sell {formatCurrency(crossTotal)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowNegociadosModal(false)}
+                  className="transition-colors cursor-pointer"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1">
+                {negociadosDetalhados.length > 0 ? (
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b" style={{ borderColor: "var(--table-border)", background: "var(--input-bg)" }}>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Cliente</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Produto</th>
+                        <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Tipo</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Valor Negociado</th>
+                        <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {negociadosDetalhados.map((n) => (
+                        <tr
+                          key={n.id}
+                          className="border-b hover:opacity-90 cursor-pointer"
+                          style={{ borderColor: "var(--table-border)" }}
+                          onClick={() => {
+                            const opp = activeOpportunities.find((o) => o.id === n.id);
+                            if (opp) {
+                              setShowNegociadosModal(false);
+                              openEditModal(opp);
+                            }
+                          }}
+                        >
+                          <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{n.cliente || "—"}</td>
+                          <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>{n.produto || "—"}</td>
+                          <td className="px-4 py-3">
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                              style={{
+                                background: n.tipo === "Upsell" ? "rgba(139, 92, 246, 0.15)" : "rgba(6, 182, 212, 0.15)",
+                                color: n.tipo === "Upsell" ? "#a78bfa" : "#22d3ee",
+                              }}
+                            >
+                              {n.tipo}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: n.tipo === "Upsell" ? "#a78bfa" : "#22d3ee" }}>
+                            {formatCurrency(n.upsell)}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-right" style={{ color: "var(--muted)" }}>{n.status || "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr style={{ background: "var(--input-bg)" }}>
+                        <td className="px-4 py-3 text-xs font-semibold" colSpan={3} style={{ color: "var(--muted)" }}>
+                          Total negociado
+                        </td>
+                        <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: "var(--foreground)" }}>
+                          {formatCurrency(upsellTotal + crossTotal)}
+                        </td>
+                        <td />
+                      </tr>
+                    </tfoot>
+                  </table>
+                ) : (
+                  <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
+                    Nenhuma negociação com valor registrado no momento
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Detalhe da coluna do gráfico — clientes contabilizados no mês */}
+      {chartDetail && (() => {
+        const detailTotal = chartDetail.items.reduce((s, i) => s + i.valor, 0);
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="rounded-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
+                <div>
+                  <h2 className="text-lg font-semibold flex items-center gap-2" style={{ color: "var(--foreground)" }}>
+                    <span
+                      aria-hidden
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ background: chartDetail.color }}
+                    />
+                    {chartDetail.label} — {chartDetail.month}
+                  </h2>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--muted)" }}>
+                    {chartDetail.items.length} negociação(ões) • {chartDetail.valorLabel} total {formatCurrency(detailTotal)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setChartDetail(null)}
+                  className="transition-colors cursor-pointer"
+                  style={{ color: "var(--muted)" }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="overflow-y-auto flex-1">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b" style={{ borderColor: "var(--table-border)", background: "var(--input-bg)" }}>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Cliente</th>
                       <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Produto</th>
-                      <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Upsell</th>
+                      <th className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Status</th>
+                      <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>{chartDetail.valorLabel}</th>
                       <th className="text-right px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--muted)" }}>Mês Fechamento</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {propostasDetalhadas.map((p) => (
+                    {chartDetail.items.map((item) => (
                       <tr
-                        key={p.id}
+                        key={item.id}
                         className="border-b hover:opacity-90 cursor-pointer"
                         style={{ borderColor: "var(--table-border)" }}
                         onClick={() => {
-                          const opp = activeOpportunities.find((o) => o.id === p.id);
+                          const opp = activeOpportunities.find((o) => o.id === item.id) || visibleOpportunities.find((o) => o.id === item.id);
                           if (opp) {
-                            setShowPropostasModal(false);
+                            setChartDetail(null);
                             openEditModal(opp);
                           }
                         }}
                       >
-                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{p.cliente || "—"}</td>
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>{p.produto || "—"}</td>
-                        <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: "var(--warning)" }}>
-                          {formatCurrency(p.upsell)}
+                        <td className="px-4 py-3 text-sm font-medium" style={{ color: "var(--foreground)" }}>{item.cliente || "—"}</td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--muted)" }}>{item.produto || "—"}</td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${statusColors[item.status] ?? ""}`}
+                            style={!statusColors[item.status] ? { background: "var(--input-bg)", color: "var(--muted)" } : undefined}
+                          >
+                            {item.status || "—"}
+                          </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-right" style={{ color: "var(--muted)" }}>
-                          {p.data_fechamento ? (() => {
-                            const [year, month] = p.data_fechamento.split("-");
+                        <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: chartDetail.color }}>
+                          {formatCurrency(item.valor)}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {item.data_fechamento ? (() => {
+                            const [year, month] = item.data_fechamento.split("-");
                             const months = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-                            return `${months[parseInt(month) - 1]}/${year.slice(2)}`;
-                          })() : "—"}
+                            return (
+                              <span
+                                className="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+                                style={{ background: "var(--input-bg)", color: "var(--muted)", border: "1px solid var(--table-border)" }}
+                              >
+                                {`${months[parseInt(month) - 1]}/${year.slice(2)}`}
+                              </span>
+                            );
+                          })() : (
+                            <span className="text-xs" style={{ color: "var(--muted)" }}>—</span>
+                          )}
                         </td>
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot>
+                    <tr style={{ background: "var(--input-bg)" }}>
+                      <td className="px-4 py-3 text-xs font-semibold" colSpan={3} style={{ color: "var(--muted)" }}>
+                        {chartDetail.valorLabel} total do mês
+                      </td>
+                      <td className="px-4 py-3 text-sm font-bold text-right" style={{ color: chartDetail.color }}>
+                        {formatCurrency(detailTotal)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
                 </table>
-              ) : (
-                <p className="text-sm text-center py-8" style={{ color: "var(--muted)" }}>
-                  Nenhuma proposta ativa no momento
-                </p>
-              )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Mapa de Calor — Modal de detalhe por temperatura */}
       {showCalorModal && (() => {
