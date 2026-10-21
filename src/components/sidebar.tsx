@@ -16,20 +16,23 @@ import {
   Sun,
   Moon,
   Palette,
-  Settings,
   ChevronDown,
+  AlertTriangle,
+  ClipboardList,
+  type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@/lib/theme/ThemeContext";
 import { APP_VERSION_SHORT } from "@/lib/version";
+import { usePrivileges } from "@/lib/use-privileges";
+import { PAGES, type PageKey } from "@/lib/privileges";
 import {
   carregarMes,
   lerCacheMes,
   cacheFresca,
   avaliarAlertaReuniao,
   fetchElephan,
-  normNome,
   type ElephanAlerta,
   type ElephanTranscribeComSinais,
   type ElephanTranscribeResumo,
@@ -44,6 +47,7 @@ const adminNavItems = [
   { label: "Recupera", href: "/recupera", icon: LifeBuoy },
   { label: "Renovações", href: "/renovacoes", icon: RefreshCw },
   { label: "Elephan.AI", href: "/elephan", icon: Sparkles },
+  { label: "Planos", href: "/planos", icon: ClipboardList },
 ];
 
 const upcomingItems = [
@@ -62,6 +66,16 @@ const READ_MAP_KEY = "alertas_read_v1";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
+// Ícone de cada página do registry de privilégios
+const PAGE_ICONS: Record<PageKey, LucideIcon> = {
+  overview: LayoutDashboard,
+  elephan: Sparkles,
+  recupera: LifeBuoy,
+  renovacoes: RefreshCw,
+  analytics: BarChart3,
+  alertas: AlertTriangle,
+};
+
 // Status encerrados não geram alerta de inatividade
 const CLOSED_STATUSES = new Set(["Fechado", "Assinado", "Perdido", "Proposta Perdida"]);
 
@@ -70,6 +84,9 @@ function daysSince(iso?: string): number {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 }
 
+// Capturado uma vez na carga do módulo (fora do render): base para "Xmin atrás"
+const AGORA_BASE = Date.now();
+
 export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?: string; activeCount?: number | null }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -77,8 +94,12 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   const [showSettings, setShowSettings] = useState(false);
   const userEmail = propUserEmail ?? "";
   const settingsRef = useRef<HTMLDivElement>(null);
+  const priv = usePrivileges();
 
-  const isAdmin = userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  const isAdmin =
+    priv.isAdmin || userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+  // Alertas da Elephan no sino: admin OU privilégio com a função liberada
+  const canElephanAlerts = isAdmin || priv.hasFeature("elephan", "alertas");
   // Notificações já abertas individualmente (a bolinha amarela some ao clicar)
   const [readMap, setReadMap] = useState<Record<string, string>>({});
   // Dot de carregamento até o fetch inicial de notificações resolver
@@ -123,11 +144,11 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     });
   }, []);
 
-  // Alertas da Elephan (somente admin): sentimento negativo dominante + churn
+  // Alertas da Elephan: sentimento negativo dominante + churn
   // signals das reuniões do mês, respeitando o que já foi marcado como lido
   // no quadro da página /elephan. Cache-first: reusa o cache do navegador.
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canElephanAlerts) return;
     let disposed = false;
     (async () => {
       await Promise.resolve();
@@ -135,12 +156,6 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         const now = new Date();
         const inicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
         const fim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
-        let apiKey = "";
-        try {
-          apiKey = localStorage.getItem("elephan_api_key") ?? "";
-        } catch {
-          // proxy usa a chave do .env
-        }
 
         // cache-first: reusa o cache do navegador quando fresco
         const cache = lerCacheMes(inicio.substring(0, 7));
@@ -148,7 +163,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
         if (cache && cacheFresca(cache.ts)) {
           itens = cache.itens;
         } else {
-          const r = await carregarMes(inicio, fim, apiKey, { maxPaginas: 3 });
+          const r = await carregarMes(inicio, fim, "", { maxPaginas: 3 });
           if (disposed) return;
           itens = r.itens;
         }
@@ -179,7 +194,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
             while (filas.length > 0) {
               const id = filas.shift()!;
               try {
-                const body = await fetchElephan(`/v1/transcribes/${id}`, apiKey);
+                const body = await fetchElephan(`/v1/transcribes/${id}`);
                 if (body?.data) detalhes.set(id, body.data as ElephanTranscribeComSinais);
               } catch {
                 // falha individual não derruba o lote
@@ -205,7 +220,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
     return () => {
       disposed = true;
     };
-  }, [isAdmin]);
+  }, [canElephanAlerts]);
 
   // Notificações de inatividade (7+ dias, escopo do usuario via RLS) — todos
   useEffect(() => {
@@ -337,7 +352,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   }, []);
 
   function timeAgoShort(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime();
+    const diff = AGORA_BASE - new Date(iso).getTime();
     const m = Math.floor(diff / 60000);
     if (m < 1) return "agora";
     if (m < 60) return `${m}min`;
@@ -504,8 +519,8 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                       </button>
                     ))}
 
-                    {/* Alertas da Elephan (sentimentação/churn — somente admin) */}
-                    {isAdmin && elephanAlertas.length > 0 && (
+                    {/* Alertas da Elephan (sentimentação/churn — admin ou função liberada) */}
+                    {canElephanAlerts && elephanAlertas.length > 0 && (
                       <>
                         <div className="px-4 pt-2 pb-1">
                           <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
@@ -605,7 +620,32 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.concat(isAdmin ? adminNavItems : []).map((item) => {
+        {(() => {
+          // Não-admin: navegação dirigida pelo privilégio atribuído.
+          // Enquanto o hook resolve, mostra o fallback conservador (UX atual do usuário padrão).
+          const resolved = isAdmin || !priv.loading;
+          const openPages = PAGES.filter((p) => priv.canOpen(p.key));
+          const blockedPages = PAGES.filter(
+            (p) => !priv.canOpen(p.key) && priv.access(p.key) === "disabled"
+          );
+          const mainItems = isAdmin
+            ? navItems.concat(adminNavItems)
+            : resolved && openPages.length > 0
+              ? openPages.map((p) => ({ label: p.label, href: p.href, icon: PAGE_ICONS[p.key] }))
+              : navItems;
+          const sectionLabel = isAdmin
+            ? "Admin"
+            : !resolved || openPages.length <= 1
+              ? "Em Breve"
+              : "Bloqueadas";
+          const sectionItems = isAdmin
+            ? adminItems
+            : !resolved
+              ? upcomingItems
+              : blockedPages.map((p) => ({ label: p.label, icon: PAGE_ICONS[p.key] }));
+          return (
+            <>
+        {mainItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
@@ -652,14 +692,16 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
           );
         })}
 
-        <div
-          className="pt-3 pb-1 px-3 mt-2"
-          style={{ borderTop: "1px solid var(--sidebar-border)" }}
-        >
-          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
-            {isAdmin ? "Admin" : "Em Breve"}
-          </span>
-        </div>
+        {sectionItems.length > 0 && (
+          <div
+            className="pt-3 pb-1 px-3 mt-2"
+            style={{ borderTop: "1px solid var(--sidebar-border)" }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>
+              {sectionLabel}
+            </span>
+          </div>
+        )}
 
         {isAdmin
           ? adminItems.map((item) => {
@@ -688,16 +730,20 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
                 </Link>
               );
             })
-          : upcomingItems.map((item) => (
+          : sectionItems.map((item) => (
               <div
                 key={item.label}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm cursor-not-allowed"
                 style={{ color: "var(--muted)", opacity: 0.5 }}
+                title={resolved ? "Bloqueado pelo seu privilégio" : undefined}
               >
                 <item.icon size={16} />
                 {item.label}
               </div>
             ))}
+            </>
+          );
+        })()}
       </nav>
 
       {/* User info + Settings */}

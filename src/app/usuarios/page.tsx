@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTheme } from "@/lib/theme/ThemeContext";
+import { PrivilegesManager } from "@/components/privileges-manager";
+import { ADMIN_EMAIL, type Privilege } from "@/lib/privileges";
 import {
   Users,
   Plus,
@@ -17,14 +19,11 @@ import {
   Save,
   AlertTriangle,
   CheckCircle,
-  ChevronDown,
   Ban,
   RotateCcw,
   Lock,
   User as UserIcon,
 } from "lucide-react";
-
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
 interface AuthUser {
   id: string;
@@ -54,6 +53,23 @@ export default function UsuariosPage() {
   const [resetPasswordUser, setResetPasswordUser] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
+  const [tab, setTab] = useState<"usuarios" | "privilegios">("usuarios");
+  const [customPrivileges, setCustomPrivileges] = useState<Privilege[]>([]);
+
+  function handleManagerFeedback(kind: "error" | "success", msg: string) {
+    if (!msg) {
+      setError(null);
+      setSuccess(null);
+      return;
+    }
+    if (kind === "error") {
+      setError(msg);
+      setSuccess(null);
+    } else {
+      setSuccess(msg);
+      setError(null);
+    }
+  }
 
   useEffect(() => {
     async function checkAuth() {
@@ -71,10 +87,23 @@ export default function UsuariosPage() {
         return;
       }
       await fetchUsers();
+      await fetchCustomPrivileges();
       setLoading(false);
     }
     checkAuth();
   }, []);
+
+  async function fetchCustomPrivileges() {
+    try {
+      const res = await fetch("/api/privileges");
+      const data = await res.json();
+      if (res.ok) {
+        setCustomPrivileges((data.privileges ?? []).filter((p: Privilege) => !p.is_system));
+      }
+    } catch {
+      // sem a lista custom, o select mostra apenas Usuário/Admin
+    }
+  }
 
   async function fetchUsers() {
     try {
@@ -120,7 +149,13 @@ export default function UsuariosPage() {
       if (!res.ok) {
         setError("Erro ao alterar privilégio: " + (data.error || "Erro desconhecido"));
       } else {
-        setSuccess(`Privilégio alterado para ${newRole === 'admin' ? 'Administrador' : 'Usuário'}.`);
+        const nomePriv =
+          newRole === "admin"
+            ? "Administrador"
+            : newRole === "user"
+              ? "Usuário"
+              : (customPrivileges.find((p) => p.slug === newRole)?.name ?? newRole);
+        setSuccess(`Privilégio alterado para ${nomePriv}.`);
         await fetchUsers();
       }
     } catch {
@@ -271,14 +306,48 @@ export default function UsuariosPage() {
             <p className="text-xs" style={{ color: "var(--muted)" }}>Acesso restrito ao administrador</p>
           </div>
         </div>
-        <button
-          onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 cursor-pointer"
-          style={{ color: "#ffffff", background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
-        >
-          <Plus size={14} />
-          Novo Usuário
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Tabs: Usuários / + Privilégios */}
+          <div
+            className="flex items-center rounded-lg overflow-hidden"
+            style={{ border: "1px solid var(--input-border)", background: "var(--input-bg)" }}
+          >
+            <button
+              onClick={() => { setTab("usuarios"); fetchCustomPrivileges(); }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all cursor-pointer"
+              style={{
+                background: tab === "usuarios" ? "var(--nav-active-bg)" : "transparent",
+                color: tab === "usuarios" ? "var(--accent-text)" : "var(--muted)",
+                border: tab === "usuarios" ? "1px solid var(--nav-active-border)" : "1px solid transparent",
+              }}
+            >
+              <Users size={12} />
+              Usuários
+            </button>
+            <button
+              onClick={() => setTab("privilegios")}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all cursor-pointer"
+              style={{
+                background: tab === "privilegios" ? "var(--nav-active-bg)" : "transparent",
+                color: tab === "privilegios" ? "var(--accent-text)" : "var(--muted)",
+                border: tab === "privilegios" ? "1px solid var(--nav-active-border)" : "1px solid transparent",
+              }}
+            >
+              {tab === "privilegios" ? <Shield size={12} /> : <Plus size={12} />}
+              Privilégios
+            </button>
+          </div>
+          {tab === "usuarios" && (
+            <button
+              onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 cursor-pointer"
+              style={{ color: "#ffffff", background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))` }}
+            >
+              <Plus size={14} />
+              Novo Usuário
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Alerts */}
@@ -297,7 +366,13 @@ export default function UsuariosPage() {
         </div>
       )}
 
+      {/* Aba Privilégios */}
+      {tab === "privilegios" && (
+        <PrivilegesManager onFeedback={handleManagerFeedback} />
+      )}
+
       {/* Stats */}
+      {tab === "usuarios" && (
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total", value: users.length, icon: Users, colorVar: "var(--accent-text)" },
@@ -318,8 +393,10 @@ export default function UsuariosPage() {
           </div>
         ))}
       </div>
+      )}
 
       {/* Users Table */}
+      {tab === "usuarios" && (
       <div
         className="rounded-xl overflow-hidden"
         style={{ background: `linear-gradient(135deg, var(--card-bg), var(--background))`, border: "1px solid var(--card-border)" }}
@@ -443,6 +520,16 @@ export default function UsuariosPage() {
                               >
                                 <option value="user" style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>Usuário</option>
                                 <option value="admin" style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>Admin</option>
+                                {customPrivileges.map((p) => (
+                                  <option key={p.id} value={p.slug} style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>
+                                    {p.name}
+                                  </option>
+                                ))}
+                                {userRole !== "user" && userRole !== "admin" && !customPrivileges.some((p) => p.slug === userRole) && (
+                                  <option value={userRole} style={{ background: "var(--card-bg)", color: "var(--foreground)" }}>
+                                    {userRole} (removido)
+                                  </option>
+                                )}
                               </select>
                               <button
                                 onClick={() => setResetPasswordUser(user.id)}
@@ -505,6 +592,7 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Create User Modal */}
       {showCreateModal && (

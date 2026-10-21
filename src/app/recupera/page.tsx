@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { usePrivileges } from "@/lib/use-privileges";
 import {
   Search,
   Plus,
@@ -58,8 +59,6 @@ const meses = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
-
 export default function RecuperaPage() {
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -86,24 +85,28 @@ export default function RecuperaPage() {
     status_proposta: null,
   });
 
+  const priv = usePrivileges();
+  // somente visualização: sem criar/editar/excluir
+  const readOnly = !priv.canEdit("recupera");
+
   useEffect(() => {
     async function guardAndLoad() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
+      await Promise.resolve(); // evita setState síncrono no corpo do effect (react-hooks)
+      if (priv.loading) return;
+      if (!priv.email) {
         window.location.href = "/login";
         return;
       }
-      // Pagina em "Em Breve" para usuarios comuns: somente admin acessa
-      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        window.location.href = "/overview";
+      // Guarda por privilégio: abre quando o privilégio tem acesso à /recupera
+      if (!priv.canOpen("recupera")) {
+        window.location.href = priv.homeHref === "/recupera" ? "/overview" : priv.homeHref;
         return;
       }
-      setUserEmail(user.email);
+      setUserEmail(priv.email);
       loadData();
     }
     guardAndLoad();
-  }, []);
+  }, [priv]);
 
   async function loadData() {
     const supabase = createClient();
@@ -241,16 +244,18 @@ export default function RecuperaPage() {
               Gestão de recuperações preditivas e churn
             </p>
           </div>
-          <button
-            onClick={() => { resetForm(); setEditingId(null); setShowCreateModal(true); }}
-            className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90"
-            style={{
-              background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
-            }}
-          >
-            <Plus size={16} />
-            Nova Recuperação
-          </button>
+          {!readOnly && (
+            <button
+              onClick={() => { resetForm(); setEditingId(null); setShowCreateModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-lg transition-all font-medium cursor-pointer hover:opacity-90"
+              style={{
+                background: "linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))",
+              }}
+            >
+              <Plus size={16} />
+              Nova Recuperação
+            </button>
+          )}
         </div>
 
         {/* Stats Cards */}
@@ -419,6 +424,7 @@ export default function RecuperaPage() {
                       </td>
                       <td className="px-4 py-3 text-center" style={{ color: "var(--foreground)" }}>{recovery.status_proposta || "-"}</td>
                       <td className="px-4 py-3 text-center">
+                        {!readOnly && (
                         <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => openEditModal(recovery)}
@@ -435,6 +441,7 @@ export default function RecuperaPage() {
                             <Trash2 size={16} />
                           </button>
                         </div>
+                        )}
                       </td>
                     </tr>
                   );

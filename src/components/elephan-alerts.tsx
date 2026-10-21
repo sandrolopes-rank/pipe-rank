@@ -79,7 +79,9 @@ export function ElephanAlerts({
 
   // Abre o quadro automaticamente quando o admin vem do sino
   useEffect(() => {
-    if (autoAbrir) setShowQuadro(true);
+    Promise.resolve().then(() => {
+      if (autoAbrir) setShowQuadro(true);
+    });
   }, [autoAbrir]);
 
   // Restaura alertas já lidos (adiado para microtask: react-hooks)
@@ -114,12 +116,6 @@ export function ElephanAlerts({
       const faltando = negativas.filter((o) => !detalhesNegativos.has(o.id));
       if (disposed || faltando.length === 0) return;
       setCarregandoDetalhes(true);
-      let apiKey = "";
-      try {
-        apiKey = localStorage.getItem("elephan_api_key") ?? "";
-      } catch {
-        // proxy usa a chave do .env
-      }
       const mapa = new Map<string, AlertTranscribe>();
       const filas = [...faltando.map((o) => o.id)];
       await Promise.all(
@@ -128,7 +124,7 @@ export function ElephanAlerts({
             const id = filas.shift();
             if (!id) break;
             try {
-              const body = await fetchElephan(`/v1/transcribes/${id}`, apiKey);
+              const body = await fetchElephan(`/v1/transcribes/${id}`);
               if (body?.data) mapa.set(id, body.data as AlertTranscribe);
             } catch {
               // falha individual não derruba o lote

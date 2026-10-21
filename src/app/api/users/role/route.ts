@@ -29,11 +29,20 @@ export async function PATCH(request: Request) {
       );
     }
 
+    // Roles válidas: 'admin', 'user' ou slug de um privilégio custom existente
     if (role !== "admin" && role !== "user") {
-      return NextResponse.json(
-        { error: "Role inválida. Use 'admin' ou 'user'." },
-        { status: 400 }
-      );
+      const { data: priv } = await supabase
+        .from("privileges")
+        .select("slug")
+        .eq("slug", role)
+        .eq("is_system", false)
+        .maybeSingle();
+      if (!priv) {
+        return NextResponse.json(
+          { error: "Privilégio inválido. Use 'admin', 'user' ou um privilégio cadastrado." },
+          { status: 400 }
+        );
+      }
     }
 
     // Update user metadata with the new role

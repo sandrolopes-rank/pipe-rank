@@ -41,18 +41,6 @@ interface SentimentoEntry {
   perc?: number;
 }
 
-interface TranscribeAlertavel {
-  id: string;
-  title?: string;
-  dateIncluded?: string;
-  user?: { name?: string; email?: string };
-  deal?: { crmUrl?: string | null } | null;
-  reasons?: Array<{ type?: string; description?: string; details?: string }>;
-  sentimentAnalysis?: {
-    totalSentiment?: SentimentoEntry[];
-  } | null;
-}
-
 // Reunião com negativo dominante (>= LIMIAR_NEGATIVO e acima do positivo)
 export function negativoDominante(
   totals: SentimentoEntry[] | undefined
@@ -108,14 +96,16 @@ export function avaliarAlertaReuniao(o: ElephanTranscribeComSinais): ElephanAler
   return out;
 }
 
-// Consulta via proxy server-side (evita CORS); timeout de segurança
+// Consulta via proxy server-side (evita CORS); timeout de segurança.
+// apiKey é OPCIONAL: quando vazia, o proxy usa a chave configurada no
+// servidor (.env.local / variável de ambiente da Vercel).
 export interface ElephanApiResposta {
   data?: unknown;
   pagination?: { page?: number; limit?: number; total?: number; totalPages?: number; hasNext?: boolean; hasPrev?: boolean };
   status?: number;
 }
 
-export async function fetchElephan(path: string, apiKey: string): Promise<ElephanApiResposta> {
+export async function fetchElephan(path: string, apiKey = ""): Promise<ElephanApiResposta> {
   const res = await fetch("/api/elephan/proxy", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -172,6 +162,7 @@ function itensLeves(todas: unknown[]): ElephanTranscribeResumo[] {
   // Descarta campos pesados (transcript ~25KB/reunião) antes de cachear
   return todas.map((o) => {
     const r = (o ?? {}) as Record<string, unknown> & { id: string };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { transcript, keywords, competitors, tags, importantPoints, summary, ...leve } = r;
     return { id: r.id, ...(leve as object) } as ElephanTranscribeResumo;
   });
@@ -182,7 +173,7 @@ function itensLeves(todas: unknown[]): ElephanTranscribeResumo[] {
 export async function carregarMes(
   inicioISO: string,
   fimISO: string,
-  apiKey: string,
+  apiKey = "",
   opts?: { forcar?: boolean; maxPaginas?: number }
 ): Promise<CarregarMesResultado> {
   const chave = `${CACHE_PREFIX}${inicioISO.substring(0, 7)}`;

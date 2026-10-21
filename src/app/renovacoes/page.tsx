@@ -1,35 +1,32 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { RefreshCw, Inbox, Loader2 } from "lucide-react";
-
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
+import { usePrivileges } from "@/lib/use-privileges";
+import { Inbox, Loader2 } from "lucide-react";
 
 export default function RenovacoesPage() {
   const [allowed, setAllowed] = useState(false);
   // Email do usuario logado: mantem a sidebar em modo admin
   const [userEmail, setUserEmail] = useState("");
+  const priv = usePrivileges();
 
-  // Pagina em "Em Breve" para usuarios comuns: somente admin acessa
+  // Guarda por privilégio: abre quando o privilégio tem acesso à /renovacoes
   useEffect(() => {
-    async function check() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
+    Promise.resolve().then(() => {
+      if (priv.loading) return;
+      if (!priv.email) {
         window.location.href = "/login";
         return;
       }
-      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        window.location.href = "/overview";
+      if (!priv.canOpen("renovacoes")) {
+        window.location.href = priv.homeHref === "/renovacoes" ? "/overview" : priv.homeHref;
         return;
       }
-      setUserEmail(user.email);
+      setUserEmail(priv.email);
       setAllowed(true);
-    }
-    check();
-  }, []);
+    });
+  }, [priv]);
 
   if (!allowed) {
     return (

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
+import { usePrivileges } from "@/lib/use-privileges";
 import {
   Activity,
   LogIn,
@@ -20,8 +21,6 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
 interface AccessRow {
   id: number;
@@ -62,20 +61,22 @@ export default function AnalyticsPage() {
   const [loading, setLoading] = useState(true);
   const [logs, setLogs] = useState<AccessRow[]>([]);
 
+  const priv = usePrivileges();
+
   useEffect(() => {
-    async function init() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
+    Promise.resolve().then(async () => {
+      if (priv.loading) return;
+      if (!priv.email) {
         window.location.href = "/login";
         return;
       }
-      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        window.location.href = "/overview";
+      if (!priv.canOpen("analytics")) {
+        window.location.href = priv.homeHref === "/analytics" ? "/overview" : priv.homeHref;
         return;
       }
-      setUserEmail(user.email);
+      setUserEmail(priv.email);
 
+      const supabase = createClient();
       const { data } = await supabase
         .from("access_logs")
         .select("*")
@@ -83,9 +84,8 @@ export default function AnalyticsPage() {
         .limit(500);
       setLogs((data as AccessRow[]) ?? []);
       setLoading(false);
-    }
-    init();
-  }, []);
+    });
+  }, [priv]);
 
   const stats = useMemo(() => {
     const today = new Date().toDateString();

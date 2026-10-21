@@ -50,6 +50,21 @@ interface Periodo {
   atual: boolean;
 }
 
+// Agrupa uma lista por chave com valor somado (puro, fora do componente)
+function agruparContagem<T>(
+  lista: T[],
+  keyFn: (o: T) => string | null,
+  valorFn: (o: T) => number
+): Array<[string, number]> {
+  const g: Record<string, number> = {};
+  lista.forEach((o) => {
+    const k = keyFn(o);
+    if (!k) return;
+    g[k] = (g[k] ?? 0) + valorFn(o);
+  });
+  return Object.entries(g).sort(([, a], [, b]) => b - a);
+}
+
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 function duracaoCurta(seg?: number): string {
@@ -104,6 +119,7 @@ export function ElephanDashboard({
   excluidos,
   onToggleExclusao,
   onRestoreExclusoes,
+  readOnly = false,
 }: {
   itens: TranscribeLite[];
   periodo: Periodo;
@@ -112,6 +128,8 @@ export function ElephanDashboard({
   excluidos: Set<string>;
   onToggleExclusao: (nome: string) => void;
   onRestoreExclusoes: () => void;
+  /** somente visualização: esconde o gerenciador de exclusões da sentimentação */
+  readOnly?: boolean;
 }) {
   const [respSelecionado, setRespSelecionado] = useState<string | null>(null);
   const [showExclusoes, setShowExclusoes] = useState(false);
@@ -125,16 +143,10 @@ export function ElephanDashboard({
   async function abrirDetalheReuniao(id: string) {
     setDetalheLoading(true);
     try {
-      let apiKey = "";
-      try {
-        apiKey = localStorage.getItem("elephan_api_key") ?? "";
-      } catch {
-        // proxy usa a chave do .env
-      }
       const res = await fetch("/api/elephan/proxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: `/v1/transcribes/${id}`, apiKey }),
+        body: JSON.stringify({ path: `/v1/transcribes/${id}` }),
         signal: AbortSignal.timeout(30000),
       });
       const data = await res.json();
@@ -187,29 +199,27 @@ export function ElephanDashboard({
       .map(([dia, value]) => ({ dia, value: Number(value) }));
   }, [itens]);
 
-  function agruparPorResponsavel<K extends string>(keyFn: (o: TranscribeLite) => K | null, valorFn: (o: TranscribeLite) => number) {
-    const g: Record<string, number> = {};
-    itens.forEach((o) => {
-      const k = keyFn(o);
-      if (!k) return;
-      g[k] = (g[k] ?? 0) + valorFn(o);
-    });
-    return Object.entries(g).sort(([, a], [, b]) => b - a);
-  }
-
   const porResponsavel = useMemo(
-    () => agruparPorResponsavel(
-      (o) => o.user?.name?.trim() || o.user?.email || null,
-      () => 1
-    ).slice(0, 6).map(([nome, count]) => ({ nome, valor: String(count) })),
+    () =>
+      agruparContagem(
+        itens,
+        (o) => o.user?.name?.trim() || o.user?.email || null,
+        () => 1
+      )
+        .slice(0, 6)
+        .map(([nome, count]) => ({ nome, valor: String(count) })),
     [itens]
   );
 
   const horasPorResponsavel = useMemo(
-    () => agruparPorResponsavel(
-      (o) => o.user?.name?.trim() || o.user?.email || null,
-      (o) => o.duration || 0
-    ).slice(0, 6).map(([nome, seg]) => ({ nome, valor: `${(seg / 3600).toFixed(1)}h` })),
+    () =>
+      agruparContagem(
+        itens,
+        (o) => o.user?.name?.trim() || o.user?.email || null,
+        (o) => o.duration || 0
+      )
+        .slice(0, 6)
+        .map(([nome, seg]) => ({ nome, valor: `${(seg / 3600).toFixed(1)}h` })),
     [itens]
   );
 
@@ -463,15 +473,17 @@ export function ElephanDashboard({
                         {excluidos.size > 0 ? `excluindo ${excluidos.size} pessoa(s) • ` : ""}ordenado pelo maior risco
                       </p>
                     </div>
-                    <button
-                      onClick={() => { setShowExclusoes(true); setBuscaExclusao(""); }}
-                      className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-80 cursor-pointer"
-                      style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--muted)" }}
-                      title="Gerenciar pessoas removidas da sentimentação"
-                    >
-                      <SlidersHorizontal size={11} />
-                      Pessoas
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => { setShowExclusoes(true); setBuscaExclusao(""); }}
+                        className="flex items-center gap-1.5 text-[10px] font-medium px-2.5 py-1.5 rounded-lg transition-opacity hover:opacity-80 cursor-pointer"
+                        style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--muted)" }}
+                        title="Gerenciar pessoas removidas da sentimentação"
+                      >
+                        <SlidersHorizontal size={11} />
+                        Pessoas
+                      </button>
+                    )}
                   </div>
                   <div className="relative space-y-1.5">
                     {visivel.length === 0 && (

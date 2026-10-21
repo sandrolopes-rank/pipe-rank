@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 const BASE_URL = "https://api.elephan.dev";
-const KEY_STORAGE = "elephan_api_key";
 const DOCS_URL = "https://api.elephan.dev/docs/";
 
 // Endpoints de leitura documentados (OpenAPI 3.0 da Elephan)
@@ -54,7 +53,8 @@ interface Result {
 export function ElephanPlayground() {
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
-  const [keySaved, setKeySaved] = useState(false);
+  const [serverSaved, setServerSaved] = useState(false);
+  const [savingServer, setSavingServer] = useState(false);
   const [selected, setSelected] = useState(0);
   const [pathParam, setPathParam] = useState("");
   const [query, setQuery] = useState("");
@@ -66,25 +66,16 @@ export function ElephanPlayground() {
   const ep = ENDPOINTS[selected];
   const hasPathParam = Boolean(ep.pathParam);
   const isHealth = ep.path.startsWith("/health");
-  const needsKey = !isHealth;
-
-  // Restaura chave salva
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(KEY_STORAGE);
-      if (saved) setApiKey(saved);
-    } catch {
-      // storage indisponível
-    }
-  }, []);
 
   // Preenche datas padrão (últimos 30 dias) para endpoints com período obrigatório
   useEffect(() => {
-    if (ep.requiredQuery && !query.trim()) {
-      const end = new Date();
-      const start = new Date(Date.now() - 30 * 86400000);
-      setQuery(`startDate=${start.toISOString()}&endDate=${end.toISOString()}`);
-    }
+    Promise.resolve().then(() => {
+      if (ep.requiredQuery && !query.trim()) {
+        const end = new Date();
+        const start = new Date(Date.now() - 30 * 86400000);
+        setQuery(`startDate=${start.toISOString()}&endDate=${end.toISOString()}`);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
@@ -105,7 +96,7 @@ export function ElephanPlayground() {
       const res = await fetch("/api/elephan/proxy", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path: builtPath, apiKey: needsKey ? apiKey : "" }),
+        body: JSON.stringify({ path: builtPath, apiKey }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -120,14 +111,26 @@ export function ElephanPlayground() {
     }
   }
 
-  function saveKey() {
+  async function salvarNoServidor() {
+    setSavingServer(true);
     try {
-      if (apiKey.trim()) localStorage.setItem(KEY_STORAGE, apiKey.trim());
-      else localStorage.removeItem(KEY_STORAGE);
-      setKeySaved(true);
-      setTimeout(() => setKeySaved(false), 1500);
-    } catch {
-      // storage indisponível
+      const res = await fetch("/api/elephan/config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ valor: apiKey.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(`${data.error ?? "Erro ao salvar"}${data.message ? ` — ${data.message}` : ""}`);
+      } else {
+        setServerSaved(true);
+        setApiKey(""); // limpa o override: passa a usar a chave do servidor
+        setTimeout(() => setServerSaved(false), 4000);
+      }
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setSavingServer(false);
     }
   }
 
@@ -163,7 +166,7 @@ export function ElephanPlayground() {
         </a>
       </div>
 
-      {/* Chave de API */}
+      {/* Chave de API (admin salva no servidor — vale para todos) */}
       <div>
         <label className="text-[11px] font-semibold flex items-center gap-1.5 mb-1.5" style={{ color: "var(--muted)" }}>
           <KeyRound size={11} /> Chave de API (elk_prod_...)
@@ -188,15 +191,17 @@ export function ElephanPlayground() {
             </button>
           </div>
           <button
-            onClick={saveKey}
-            className="text-[11px] font-medium px-3 py-2 rounded-lg transition-opacity hover:opacity-80 cursor-pointer whitespace-nowrap"
+            onClick={salvarNoServidor}
+            disabled={savingServer || !apiKey.trim()}
+            className="text-[11px] font-medium px-3 py-2 rounded-lg transition-opacity hover:opacity-80 cursor-pointer disabled:opacity-40 whitespace-nowrap"
             style={{ background: "var(--nav-active-bg)", color: "var(--accent-text)", border: "1px solid var(--nav-active-border)" }}
+            title="Salva a chave no Supabase — vale para todos os usuários"
           >
-            {keySaved ? "Salvo ✓" : "Salvar"}
+            {savingServer ? "Salvando..." : serverSaved ? "Salvo ✓" : "Salvar no servidor"}
           </button>
         </div>
         <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>
-          A chave fica só neste navegador e nas requisições do playground.
+          Salva no Supabase e vale para todos os usuários imediatamente (sem variável de ambiente).
         </p>
       </div>
 

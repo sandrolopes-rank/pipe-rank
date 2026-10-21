@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Sparkles, Loader2 } from "lucide-react";
 import { ElephanPlayground } from "@/components/elephan-playground";
@@ -9,9 +8,9 @@ import { ElephanMeetings } from "@/components/elephan-meetings";
 import { ElephanDashboard } from "@/components/elephan-dashboard";
 import { ElephanAlerts } from "@/components/elephan-alerts";
 import { carregarMes, lerCacheMes, cacheFresca, type ElephanTranscribeResumo } from "@/lib/elephan";
+import { usePrivileges } from "@/lib/use-privileges";
 import { Play, X, ChevronLeft, ChevronRight } from "lucide-react";
 
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 const MESES_FULL = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const STORAGE_EXCLUIDOS = "elephan_sentimento_excluidos";
 
@@ -90,37 +89,30 @@ export default function ElephanPage() {
     };
   }, [offsetMes]);
 
-  // Guarda de admin: somente admin acessa a camada de análise
+  // Guarda por privilégio: a página abre quando o privilégio tem acesso
+  // (full ou readonly) à /elephan; caso contrário redireciona.
+  const priv = usePrivileges();
   useEffect(() => {
-    async function check() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
+    Promise.resolve().then(() => {
+      if (priv.loading) return;
+      if (!priv.email) {
         window.location.href = "/login";
         return;
       }
-      if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
-        window.location.href = "/overview";
+      if (!priv.canOpen("elephan")) {
+        window.location.href = priv.homeHref === "/elephan" ? "/overview" : priv.homeHref;
         return;
       }
-      setUserEmail(user.email);
+      setUserEmail(priv.email);
       setAllowed(true);
-    }
-    check();
-  }, []);
+    });
+  }, [priv]);
 
   // Carrega as transcrições do mês selecionado (uma fonte, compartilhada
   // entre dashboard e quadro de alertas). Estratégia: cache-first em
   // localStorage (stale-while-revalidate) — zero custo de dados no Supabase.
   const carregar = useCallback(async () => {
     await Promise.resolve(); // evita setState síncrono no corpo do effect (react-hooks)
-    let apiKey = "";
-    try {
-      apiKey = localStorage.getItem("elephan_api_key") ?? "";
-    } catch {
-      // proxy usa a chave do .env
-    }
-
     // 1) Serve do cache quando disponível (instantâneo, sem chamadas)
     const cache = lerCacheMes(periodo.inicio.toISOString().substring(0, 7));
     const fresco = cache && cacheFresca(cache.ts);
@@ -138,8 +130,7 @@ export default function ElephanPage() {
     try {
       const r = await carregarMes(
         periodo.inicio.toISOString(),
-        periodo.fim.toISOString(),
-        apiKey
+        periodo.fim.toISOString()
       );
       setItens(r.itens as unknown as ElephanTranscribeResumo[]);
       setCacheTs(r.ts);
@@ -161,6 +152,24 @@ export default function ElephanPage() {
       if (new URLSearchParams(window.location.search).get("alertas") === "1") setAbrirQuadroAuto(true);
     });
   }, [allowed, carregar]);
+
+  // Escopo de dados do privilégio: 'own' mantém apenas reuniões em que o
+  // usuário é dono (e-mail/nome na Elephan) ou participou (speakerSentiment).
+  const scopeOwnKey = priv.seesAll("elephan") ? null : normNome(priv.username);
+  const itensVisiveis = useMemo(() => {
+    if (!scopeOwnKey) return itens;
+    const meMail = priv.email.toLowerCase();
+    const mePrefixo = meMail.split("@")[0];
+    return itens.filter((o) => {
+      const ownerMail = (o.user?.email ?? "").toLowerCase();
+      if (ownerMail && (ownerMail === meMail || ownerMail.split("@")[0] === mePrefixo)) return true;
+      const ownerNome = normNome(o.user?.name ?? "");
+      if (ownerNome && ownerNome === scopeOwnKey) return true;
+      return (o.sentimentAnalysis?.speakerSentiment ?? []).some(
+        (s) => normNome(s.speaker ?? "") === scopeOwnKey
+      );
+    });
+  }, [itens, scopeOwnKey, priv.email]);
 
   // Mesma página (SPA): o sino despacha o evento ao navegar
   useEffect(() => {
@@ -209,7 +218,7 @@ export default function ElephanPage() {
               Reuniões do time capturadas pela Elephan, com resumo IA e link do CRM.
             </p>
           </div>
-          {isAdminFlag(userEmail) && (
+          {priv.hasFeature("elephan", "playground") && (
             <button
               onClick={() => setShowPlayground(true)}
               className="flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl transition-opacity hover:opacity-80 cursor-pointer flex-shrink-0"
@@ -222,7 +231,9 @@ export default function ElephanPage() {
           )}
         </div>
 
-        {/* Navegação de período + selo de cache */}
+        {/* Navegação de período + selo de cache (função "dashboard" do privilégio) */}
+        {priv.hasFeature("elephan", "dashboard") && (
+        <>
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>Dashboard de reuniões</h2>
@@ -263,26 +274,33 @@ export default function ElephanPage() {
           </div>
         </div>
 
-        {/* Quadro de alertas — abaixo do botão de período */}
-        <ElephanAlerts itens={itens} periodo={{ label: periodo.label }} excluidos={excluidos} autoAbrir={abrirQuadroAuto} />
-
-        {/* Dashboard de reuniões */}
+        {/* Dashboard de reuniões (função "dashboard") */}
         <ElephanDashboard
-          itens={itens}
+          itens={itensVisiveis}
           periodo={periodo}
           loading={loading}
           error={error}
           excluidos={excluidos}
           onToggleExclusao={alternarExclusao}
           onRestoreExclusoes={restaurarExclusoes}
+          readOnly={!priv.canEdit("elephan")}
         />
+        </>
+        )}
 
-        {/* Painel de reuniões (transcrições da Elephan) */}
-        <ElephanMeetings />
+        {/* Quadro de alertas — função "alertas" (independente do dashboard) */}
+        {priv.hasFeature("elephan", "alertas") && (
+          <ElephanAlerts itens={itensVisiveis} periodo={{ label: periodo.label }} excluidos={excluidos} autoAbrir={abrirQuadroAuto} />
+        )}
+
+        {/* Painel de reuniões (transcrições da Elephan — função "reunioes") */}
+        {priv.hasFeature("elephan", "reunioes") && (
+          <ElephanMeetings lockOwnerKey={scopeOwnKey} />
+        )}
       </div>
 
-      {/* Modal do API Playground — somente admin */}
-      {showPlayground && isAdminFlag(userEmail) && (
+      {/* Modal do API Playground — função "playground" do privilégio */}
+      {showPlayground && priv.hasFeature("elephan", "playground") && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
             <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: "1px solid var(--table-border)" }}>
@@ -307,8 +325,4 @@ export default function ElephanPage() {
       )}
     </DashboardLayout>
   );
-}
-
-function isAdminFlag(email: string): boolean {
-  return email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 }

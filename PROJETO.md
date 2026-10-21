@@ -12,7 +12,15 @@
 **Deploy:** Vercel, a partir do `main` do repositório `sandrolopes-rank/pipe-rank` (deploy automático no push).
 **Versão:** SemVer simplificado gerido por `scripts/version.mjs` (`npm run version:update|check`). `feat` → MINOR, `fix` → PATCH. Atual: **v0.13**.
 
-**Integração Elephan.AI** (página `/elephan`, admin): a Elephan é a plataforma de revenue intelligence que grava/transcreve reuniões do time. A API externa (somente leitura, `https://api.elephan.dev`, auth `Bearer elk_prod_...`) fornece transcrições completas, resumo IA, sentimento (geral e por participante), objeções/churn signals, scorecard, conversas de WhatsApp e insights agrupados. Docs: `https://api.elephan.dev/docs/`. A camada de análise e insights desta integração é **restrita a admins**.
+**Integração Elephan.AI** (página `/elephan`, admin): a Elephan é a plataforma de revenue intelligence que grava/transcreve reuniões do time. A API externa (somente leitura, `https://api.elephan.dev`, auth `Bearer elk_prod_...`) fornece transcrições completas, resumo IA, sentimento (geral e por participante), objeções/churn signals, scorecard, conversas de WhatsApp e insights agrupados. Docs: `https://api.elephan.dev/docs/`. O acesso desta integração é controlado pelo **sistema de privilégios** (abaixo).
+
+**Sistema de privilégios (RBAC por página/função — 20/10/2026):** o admin cria privilégios custom em `/usuarios` → aba **+ Privilégios**. Cada privilégio define, por página: acesso (`full`/`readonly`/`disabled`=cinza não-clicável na sidebar/`hidden`), escopo de dados (`all`=geral / `own`=somente atribuídos) e funções granulares (ex.: na Elephan — dashboard, alertas, reuniões, playground). Arquitetura:
+- `supabase-privileges.sql` — tabela `public.privileges` (config JSONB, RLS, seeds `admin`+`usuario`). **Precisa ser rodado no SQL Editor** (rodado em 20/10). **Cuidado**: a policy de escrita **não pode referenciar `user_roles`** (a policy dela é autorreferente → erro 42P17 "infinite recursion" em qualquer SELECT; corrigido em `supabase-privileges-fix-rls.sql`, que checa só o JWT);
+- `src/lib/privileges.ts` — **registry declarativo** de páginas/funções (fonte única; o formulário de privilégios renderiza a partir dele);
+- `src/lib/use-privileges.ts` — hook que resolve a config do usuário logado (role do `user_metadata`: `admin`/`user`/slug custom; fallback seguro = config "Usuário" quando a tabela/slug não existe);
+- `/api/privileges` + `/api/privileges/[id]` — CRUD (service role; `admin` imutável, `usuario` editável e não excluível);
+- Atribuição: select de privilégio na tabela de usuários (`/api/users/role` valida slugs custom);
+- **Admin** = acesso pleno imutável. `/usuarios` e `/planos` permanecem admin-only fora do registry (segurança).
 
 **Arquitetura da integração Elephan:**
 - `src/app/api/elephan/proxy/route.ts` — proxy server-side (evita CORS, whitelist de paths de leitura, aceita key do client ou fallback `ELEPHAN_API_KEY` no `.env.local`);
@@ -61,16 +69,21 @@
 - [ ] **Bloqueio server-side das rotas admin** (middleware): hoje a proteção é client-side; rotas como `/usuarios`, `/recupera`, `/renovacoes`, `/elephan` são acessíveis por URL direta (exposição apenas visual/funcional mitigada pelos guards).
 
 ### CRM geral
-- [ ] Definir privilégios por camada de acesso (usuário/admin/super admin) — hoje: hardcode `ADMIN_EMAIL`.
+- [x] ~~Definir privilégios por camada de acesso~~ → sistema de privilégios implementado (ver seção 1). Evoluções pendentes:
+  - [ ] **RLS server-side por privilégio**: enforcement atual é client-side (guards de rota + UI); idealmente o escopo `own`/`all` vira policy no Postgres.
+  - [ ] **RLS do Recupera**: escopo `own` na página `/recupera` ainda não filtra dados (tabela nem existe no projeto Supabase atual — ver backlog Supabase).
+  - [ ] **Escopo `own` na Elephan usa heurística** de match por e-mail/nome (dono da reunião ou participante em `speakerSentiment`); se a Elephan expuser ID do CRM, trocar por match exato.
 
 ---
 
 ## 4. Funcionalidades por página
 
-- **`/overview`** — dashboard principal: KPIs (Upsell/Cross Sell com modal de clientes e produtos negociados), Propostas em Andamento (modal reestilizado com badges), Mapa de Calor, gráfico "Upsell por Mês" com **modal por coluna** (clientes do mês, 3 slides), tabela de oportunidades.
+- **`/overview`** — dashboard principal: KPIs (Upsell/Cross Sell com modal de clientes e produtos negociados), Propostas em Andamento (modal reestilizado com badges), Mapa de Calor, gráfico "Upsell por Mês" com **modal por coluna** (clientes do mês, 3 slides), tabela de oportunidades. **Privilégios**: funções `kpis`/`graficos`/`tabela` escondem seções; `readonly` esconde criar/editar/arquivar/excluir; escopo `own` filtra por `owner_email` (tabela, KPIs, gráficos e drill-downs).
 - **`/elephan`** — integração Elephan (admin): **botão API Playground no topo** (abre modal), card-resumo de alertas (clicável → quadro com abas Críticos/Medianos; alertas clicáveis → modal de detalhes com sinais extraídos), dashboard mensal (navegação por mês, KPIs, por dia/responsável/clientes/tipos/horas/sentimentação — **todas as camadas clicáveis**: agregado → modal de grupo → reunião → modal de detalhe), sentimentação com drill-down por cliente/participante e exclusões gerenciadas + painel de reuniões (filtros responsável/data/busca, modal com resumo IA, sentimento por participante, transcrição por fala, scorecard viz, HubSpot, gravação, deep link para a Elephan).
 - **`/alertas`** — histórico de alertas (admin).
-- **`/recupera`, `/renovacoes`, `/usuarios`, `/analytics`** — módulos admin.
+- **`/recupera`, `/renovacoes`, `/analytics`** — módulos com acesso por privilégio (cada um com regra própria no registry).
+- **`/usuarios`** — admin-only: abas **Usuários** (CRUD + select de privilégio por usuário, inclui customs) e **+ Privilégios** (CRUD de privilégios; formulário gerado do registry `src/lib/privileges.ts` — nível de acesso, escopo de dados e funções por página).
+- **`/planos`** — anotações do admin (admin-only hardcoded, fora do registry).
 - **Sino de notificações (sidebar)** — badge = não lidas; diminui por item aberto; persistência em localStorage (`alertas_read_v1`). **Integra Elephan**: alertas de sentimentação/churn do mês (admin, cache-first) aparecem no sino e direcionam para `/elephan?alertas=1` (quadro auto-aberto); lidos controlados pelo quadro (evento `elephan-alertas-lidos`).
 
 ---
@@ -85,9 +98,11 @@
 
 ## 6. Decisões registradas
 
+- **Privilégios (20/10/2026)**: config JSONB por página (`access`/`scope`/`features`) na tabela `privileges`; atribuição via `user_metadata.role` ('admin' | 'user' | slug custom) — sem tabela de join. Registry TS (`src/lib/privileges.ts`) é a fonte das páginas/funções configuráveis; enforcement client-side (sidebar cinza/oculta, guards de rota com redirect para `homeHref`, readonly esconde ações, escopo filtra dados); admin sempre pleno; sino mostra alertas Elephan também para privilégios com função `alertas` liberada. Estado inicial do hook é **conservador** (config "Usuário") — sem sessão nunca se expõe nav restrita. E2E validado: sidebar (clicável/cinza/oculta), readonly sem "Nova Oportunidade", Elephan sem Playground com quadro de alertas independente do dashboard, redirects `/usuarios`/`/analytics`/`/renovacoes`/`/recupera` → home do privilégio, escopo `own` travando filtro de responsável na tabela de reuniões.
 - Integração Elephan: leitura via proxy server-side (CORS); chave no localStorage do admin + fallback `.env.local`.
 - Camada de análise/insights = admin-only (futura discussão de camadas de acesso).
 - Alertas v1: quadro na página /elephan; gatilhos ativos = sentimento negativo dominante (≥40% e > positivo) e churn_signal (via detalhe das reuniões negativas); scorecard = camada pronta inativa.
 - Estratégia de dados: a **lista** da API já traz sentiment/deal/summary — detalhe só quando necessário (modal, churn check).
 - **Performance**: cache localStorage com strip dos campos pesados (zero custo no Supabase), TTL 15min + stale-while-revalidate; opção B (cache server-side) fica para quando houver múltiplos admins/sino em tempo real.
+- **Chave da API Elephan centralizada no Supabase** (`app_config.elephan_api_key`): o admin troca pela interface (playground → "Salvar no servidor") e vale para todos imediatamente — sem variável de ambiente na Vercel. O proxy resolve nesta ordem: override do playground → app_config (service role, cache 60s) → env `ELEPHAN_API_KEY` (fallback). SQL: `supabase-elephan-config.sql` (RLS admin-only; proxy lê via service role).
 - **Exclusões da sentimentação**: o admin gerencia (botão "Pessoas" no card de sentimentação) quais nomes são removidos das views de sentimento (ex.: membros internos), persistido em localStorage (`elephan_sentimento_excluidos`) — aplicado ao card e aos participantes do drill-down. Persistência compartilhada (Supabase) fica como evolução futura caso haja múltiplos admins.

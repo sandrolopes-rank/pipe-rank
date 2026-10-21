@@ -1,13 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 // Proxy de consulta à API externa da Elephan (somente leitura, GET).
-// Serve para o playground da pagina /elephan: evita CORS e mantem as
-// respostas legiveis no cliente. A API key vem do localStorage do admin
-// e NAO e persistida no servidor.
+// Resolve a chave de API nesta ordem:
+//   1. override do playground (admin, não persistida);
+//   2. tabela app_config no Supabase (admin troca pela interface — vale
+//      para todos os usuários imediatamente, sem redeploy);
+//   3. variável de ambiente ELEPHAN_API_KEY (fallback inicial).
 
 const BASE_URL = "https://api.elephan.dev";
 // Apenas rotas de leitura documentadas (health + /v1/*)
 const ALLOWED_PREFIXES = ["/health", "/v1/"];
+
+// Cache em memória da chave lida do Supabase (evita consulta a cada request)
+let chaveCache: { valor: string | null; ts: number } | null = null;
+const CHAVE_CACHE_TTL = 60 * 1000;
+
+async function chaveDoSupabase(): Promise<string | null> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return null;
+  if (chaveCache && Date.now() - chaveCache.ts < CHAVE_CACHE_TTL) return chaveCache.valor;
+  try {
+    const supabase = createClient(url, serviceKey);
+    const { data } = await supabase
+      .from("app_config")
+      .select("valor")
+      .eq("chave", "elephan_api_key")
+      .maybeSingle();
+    chaveCache = { valor: (data?.valor as string) ?? null, ts: Date.now() };
+    return chaveCache.valor;
+  } catch {
+    // tabela inexistente/erro: cai para o fallback de ambiente
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,7 +48,10 @@ export async function POST(request: NextRequest) {
     }
 
     const headers: Record<string, string> = { Accept: "application/json" };
-    const key = typeof apiKey === "string" && apiKey.trim() ? apiKey.trim() : process.env.ELEPHAN_API_KEY;
+    const key =
+      typeof apiKey === "string" && apiKey.trim()
+        ? apiKey.trim() // override do playground (admin)
+        : (await chaveDoSupabase()) ?? process.env.ELEPHAN_API_KEY ?? "";
     if (key) {
       headers.Authorization = `Bearer ${key}`;
     }

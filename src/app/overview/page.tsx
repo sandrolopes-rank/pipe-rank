@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useTheme } from "@/lib/theme/ThemeContext";
+import { usePrivileges } from "@/lib/use-privileges";
 import {
   AreaChart,
   Area,
@@ -52,6 +53,7 @@ import {
   Clock,
   Menu,
   Inbox,
+  Lock,
 } from "lucide-react";
 
 interface Opportunity {
@@ -232,6 +234,18 @@ export default function OverviewPage() {
 
   const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
+  // ===== Privilégios (acesso, funções, escopo e modo somente-visualização) =====
+  const priv = usePrivileges();
+  // Durante a resolução do hook, assume permissivo para não piscar a UI do admin;
+  // depois de resolvido, aplica o privilégio (readonly esconde edição, escopo filtra dados).
+  const seesAllOverview = priv.loading
+    ? currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+    : priv.seesAll("overview");
+  const canEditOverview = priv.loading ? true : priv.canEdit("overview");
+  const featKpis = priv.loading ? true : priv.hasFeature("overview", "kpis");
+  const featGraficos = priv.loading ? true : priv.hasFeature("overview", "graficos");
+  const featTabela = priv.loading ? true : priv.hasFeature("overview", "tabela");
+
   // Fetch data
   useEffect(() => {
     async function fetchData() {
@@ -270,11 +284,8 @@ export default function OverviewPage() {
         .order("created_at", { ascending: false });
 
       if (data) {
-        // Filter by owner_email: admin sees all, others see only their own
-        const filtered = user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
-          ? data
-          : data.filter((o) => o.owner_email?.toLowerCase() === user?.email?.toLowerCase());
-        setOpportunities(filtered as Opportunity[]);
+        // Escopo aplicado no memo scopedOpportunities (privilégio resolve assíncrono)
+        setOpportunities(data as Opportunity[]);
       }
       setLoading(false);
     }
@@ -298,11 +309,7 @@ export default function OverviewPage() {
             .select("*")
             .order("created_at", { ascending: false });
           if (data && user) {
-            const filtered =
-              user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
-                ? data
-                : data.filter((o) => o.owner_email?.toLowerCase() === user.email?.toLowerCase());
-            setOpportunities(filtered as Opportunity[]);
+            setOpportunities(data as Opportunity[]);
           }
         }
       )
@@ -313,9 +320,18 @@ export default function OverviewPage() {
     };
   }, []);
 
+  // Escopo de dados do privilégio: 'own' filtra pelas oportunidades atribuídas
+  // ao usuário logado (owner_email); 'all' vê geral.
+  const scopedOpportunities = useMemo(() => {
+    if (seesAllOverview) return opportunities;
+    const mail = currentUser?.email?.toLowerCase();
+    if (!mail) return opportunities;
+    return opportunities.filter((o) => o.owner_email?.toLowerCase() === mail);
+  }, [opportunities, seesAllOverview, currentUser]);
+
   // Arquivadas saem da tabela e dos gráficos (o dado fica salvo no banco)
-  const visibleOpportunities = opportunities.filter((o) => !o.arquivada);
-  const archivedOpportunities = opportunities.filter((o) => o.arquivada);
+  const visibleOpportunities = scopedOpportunities.filter((o) => !o.arquivada);
+  const archivedOpportunities = scopedOpportunities.filter((o) => o.arquivada);
 
   // Filter out closed/lost statuses for dashboard metrics (Upsell, Propostas, Mapa de Calor)
   const activeOpportunities = visibleOpportunities.filter(
@@ -706,12 +722,14 @@ export default function OverviewPage() {
   );
 
   function openCreateModal() {
+    if (!canEditOverview) return; // privilégio somente-visualização
     setEditingOpportunity(null);
     setFormData({ ...emptyOpportunity, responsavel: userEmail.split("@")[0] || "" });
     setShowModal(true);
   }
 
   function openEditModal(opp: Opportunity) {
+    if (!canEditOverview) return; // privilégio somente-visualização
     setEditingOpportunity(opp);
     setFormData({
       owner_email: opp.owner_email,
@@ -858,15 +876,38 @@ export default function OverviewPage() {
     observacoes_2: "Observações 2",
   };
 
+  // Guarda por privilégio: página oculta ou bloqueada não renderiza conteúdo
+  if (!priv.loading && priv.email && !priv.canOpen("overview")) {
+    return (
+      <DashboardLayout userEmail={userEmail}>
+        <div className="flex flex-col items-center justify-center py-24 gap-3">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center"
+            style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)" }}
+          >
+            <Lock size={22} style={{ color: "var(--muted)" }} />
+          </div>
+          <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
+            Sem acesso à Overview
+          </h2>
+          <p className="text-xs text-center max-w-sm" style={{ color: "var(--muted)" }}>
+            O privilégio atribuído ao seu usuário não libera esta página. Fale com o administrador para ajustar seus acessos.
+          </p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout userEmail={userEmail} activeCount={volumePropostas}>
       {/* Deep-link ?edit=<id>: abre o formulário de edição da oportunidade */}
       <Suspense fallback={null}>
-        <EditDeepLink opportunities={opportunities} loading={loading} onOpen={openEditModal} />
+        <EditDeepLink opportunities={scopedOpportunities} loading={loading} onOpen={openEditModal} />
       </Suspense>
       {/* ===== DASHBOARD SECTION ===== */}
 
-      {/* KPI Cards */}
+      {/* KPI Cards (função "kpis" do privilégio) */}
+      {featKpis && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         {/* Card 1: Upsell + Cross Sell Negociado (clique para detalhe) */}
         <div
@@ -1147,8 +1188,11 @@ export default function OverviewPage() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Chart */}
+      {/* Chart + Analytics (função "graficos" do privilégio) */}
+      {featGraficos && (
+      <>
       <div
         className="relative overflow-hidden rounded-2xl p-5 mb-6"
         style={{
@@ -1460,13 +1504,13 @@ export default function OverviewPage() {
                 </div>
               </div>
             </div>
-            <span className="text-xs" style={{ color: "var(--muted)" }}>{opportunities.length} oportunidades</span>
+            <span className="text-xs" style={{ color: "var(--muted)" }}>{scopedOpportunities.length} oportunidades</span>
           </div>
           <div className="relative space-y-3">
             {Object.entries(statusColorsDashboard).map(([status, classes]) => {
-              const count = opportunities.filter((o) => o.status === status).length;
-              const pct = opportunities.length > 0 ? Math.round((count / opportunities.length) * 100) : 0;
-              const totalUpsell = opportunities
+              const count = scopedOpportunities.filter((o) => o.status === status).length;
+              const pct = scopedOpportunities.length > 0 ? Math.round((count / scopedOpportunities.length) * 100) : 0;
+              const totalUpsell = scopedOpportunities
                 .filter((o) => o.status === status)
                 .reduce((sum, o) => sum + (o.upsell || 0), 0);
 
@@ -1516,12 +1560,15 @@ export default function OverviewPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
 
-      
       {/* ===== DIVIDER ===== */}
       <div className="border-t my-2 mb-6" style={{ borderColor: "var(--table-border)" }} />
 
-      {/* ===== OPORTUNIDADES TABLE SECTION ===== */}
+      {/* ===== OPORTUNIDADES TABLE SECTION (função "tabela" do privilégio) ===== */}
+      {featTabela && (
+      <>
 
       {/* Actions Bar */}
       <div className="flex items-center gap-2 mb-4 justify-end">
@@ -1663,18 +1710,20 @@ style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)",
           Exportar
         </button>
 
-        <button
-          onClick={openCreateModal}
-          className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
-          style={{
-            color: "#ffffff",
-            background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
-            boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
-          }}
-        >
-          <Plus size={14} />
-          Nova Oportunidade
-        </button>
+        {canEditOverview && (
+          <button
+            onClick={openCreateModal}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs rounded-lg transition-all font-medium cursor-pointer hover:opacity-90 hover:shadow-lg"
+            style={{
+              color: "#ffffff",
+              background: `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`,
+              boxShadow: `0 4px 12px color-mix(in srgb, var(--accent) 25%, transparent)`,
+            }}
+          >
+            <Plus size={14} />
+            Nova Oportunidade
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -1878,6 +1927,7 @@ style={{ color: "var(--muted)" }}
                       );
                     })()}
                     <td className="px-2 py-3">
+                      {canEditOverview && (
                       <div className="relative">
                         <button
                           onClick={() =>
@@ -1920,6 +1970,7 @@ style={{ color: "var(--muted)" }}
                           </div>
                         )}
                       </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -1992,6 +2043,8 @@ style={{ color: "var(--muted)" }}
           </div>
         </div>
       </div>
+      </>
+      )}
 
       {/* Propostas em Andamento Modal — relação completa de clientes */}
       {showPropostasModal && (() => {
@@ -2837,18 +2890,20 @@ style={{ color: "var(--muted)" }}
                         Upsell {formatCurrency(opp.upsell || 0)}
                       </p>
                     </div>
-                    <button
-                      onClick={() => handleArchive(opp.id, false)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer hover:opacity-80 flex-shrink-0"
-                      style={{
-                        background: "var(--nav-active-bg)",
-                        color: "var(--accent-text)",
-                        border: "1px solid var(--nav-active-border)",
-                      }}
-                    >
-                      <ArchiveRestore size={13} />
-                      Desarquivar
-                    </button>
+                    {canEditOverview && (
+                      <button
+                        onClick={() => handleArchive(opp.id, false)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all cursor-pointer hover:opacity-80 flex-shrink-0"
+                        style={{
+                          background: "var(--nav-active-bg)",
+                          color: "var(--accent-text)",
+                          border: "1px solid var(--nav-active-border)",
+                        }}
+                      >
+                        <ArchiveRestore size={13} />
+                        Desarquivar
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

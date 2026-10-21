@@ -93,9 +93,13 @@ function formatDuracao(seg?: number): string {
   return m >= 60 ? `${Math.floor(m / 60)}h${String(m % 60).padStart(2, "0")}` : `${m}min`;
 }
 
-export function ElephanMeetings() {
+export function ElephanMeetings({ lockOwnerKey }: { lockOwnerKey?: string | null } = {}) {
   const [items, setItems] = useState<ElephanTranscribe[]>([]);
   const [users, setUsers] = useState<ElephanUser[]>([]);
+  // Escopo "somente dados atribuídos": trava o filtro de responsável no
+  // usuário logado (match por nome ou prefixo de e-mail com a Elephan)
+  const [lockSemMatch, setLockSemMatch] = useState(false);
+  const [lockApplied, setLockApplied] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -109,16 +113,10 @@ export function ElephanMeetings() {
   const [detalheLoading, setDetalheLoading] = useState(false);
 
   async function callApi(path: string) {
-    let apiKey = "";
-    try {
-      apiKey = localStorage.getItem("elephan_api_key") ?? "";
-    } catch {
-      // storage indisponível — o proxy usa a chave do .env
-    }
     const res = await fetch("/api/elephan/proxy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path, apiKey }),
+      body: JSON.stringify({ path }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "Falha na consulta");
@@ -157,12 +155,23 @@ export function ElephanMeetings() {
     (async () => {
       try {
         const body = await callApi("/v1/users?limit=100");
-        setUsers((body?.data ?? []) as ElephanUser[]);
+        const lista = (body?.data ?? []) as ElephanUser[];
+        setUsers(lista);
+        if (lockOwnerKey && !lockApplied) {
+          const me = lista.find(
+            (u) =>
+              (u.name ?? "").trim().toLowerCase() === lockOwnerKey ||
+              (u.email ?? "").split("@")[0].toLowerCase() === lockOwnerKey.replace(/\s+/g, ".")
+          );
+          if (me?.email) setFiltroResp(me.email);
+          else setLockSemMatch(true);
+          setLockApplied(true);
+        }
       } catch {
         // filtro de responsável fica vazio em caso de erro
       }
     })();
-  }, []);
+  }, [lockOwnerKey, lockApplied]);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -183,13 +192,21 @@ export function ElephanMeetings() {
     }
   }
 
-  const filtrados = items.filter(
-    (o) =>
-      !busca.trim() ||
-      (o.title ?? "").toLowerCase().includes(busca.toLowerCase()) ||
-      (o.user?.email ?? "").toLowerCase().includes(busca.toLowerCase()) ||
-      (o.user?.name ?? "").toLowerCase().includes(busca.toLowerCase())
-  );
+  const filtrados = items
+    .filter(
+      (o) =>
+        !busca.trim() ||
+        (o.title ?? "").toLowerCase().includes(busca.toLowerCase()) ||
+        (o.user?.email ?? "").toLowerCase().includes(busca.toLowerCase()) ||
+        (o.user?.name ?? "").toLowerCase().includes(busca.toLowerCase())
+    )
+    .filter(
+      // escopo travado sem match na Elephan: filtro client-side por dono
+      (o) =>
+        !lockSemMatch ||
+        (o.user?.name ?? "").trim().toLowerCase() === (lockOwnerKey ?? "") ||
+        (o.user?.email ?? "").split("@")[0].toLowerCase() === (lockOwnerKey ?? "").replace(/\s+/g, ".")
+    );
 
   // Agrupa as utterances da transcrição em blocos legíveis (pausa > 10s = nova fala)
 
@@ -223,10 +240,12 @@ export function ElephanMeetings() {
         <select
           value={filtroResp}
           onChange={(e) => { setFiltroResp(e.target.value); setPage(1); }}
-          className="text-xs rounded-lg px-3 py-2 outline-none cursor-pointer min-w-[190px] h-[38px]"
+          disabled={!!lockOwnerKey}
+          className="text-xs rounded-lg px-3 py-2 outline-none cursor-pointer min-w-[190px] h-[38px] disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+          title={lockOwnerKey ? "Escopo do privilégio: somente suas reuniões" : undefined}
         >
-          <option value="">Todos os responsáveis</option>
+          <option value="">{lockOwnerKey ? "Seus dados" : "Todos os responsáveis"}</option>
           {users.map((u) => (
             <option key={u.id} value={u.email}>
               {u.name || u.email}
@@ -251,7 +270,7 @@ export function ElephanMeetings() {
             style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
           />
         </div>
-        {(filtroResp || filtroDe || filtroAte) && (
+        {(filtroResp || filtroDe || filtroAte) && !lockOwnerKey && (
           <button
             onClick={() => { setFiltroResp(""); setFiltroDe(""); setFiltroAte(""); setPage(1); }}
             className="text-[11px] font-medium px-3 py-2 rounded-lg transition-opacity hover:opacity-80 cursor-pointer h-[38px]"
