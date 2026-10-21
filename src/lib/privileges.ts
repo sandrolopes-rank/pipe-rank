@@ -3,8 +3,18 @@
 // ============================================
 // Fonte única de verdade das páginas e funções passíveis de controle
 // por privilégio. O formulário de criação de privilégios (/usuarios)
-// é renderizado a partir deste registry — adicionar uma página/função
-// aqui a torna automaticamente configurável.
+// é renderizado a partir deste registry.
+//
+// A lista de páginas é MESCLADA de duas fontes:
+//   1. PAGES_MANUAL (abaixo): páginas com label/descrição/funções granulares
+//   2. AUTO_PAGES (src/lib/privileges-pages.generated.ts): TODAS as rotas
+//      reais do app, gerada automaticamente em predev/prebuild por
+//      scripts/gen-privileges-pages.mjs a partir de src/app/**/page.tsx
+//
+// Páginas novas aparecem sozinhas no formulário de privilégios, com
+// acesso padrão "Oculta" (a segurança exige habilitação explícita).
+
+import { AUTO_PAGES } from "./privileges-pages.generated";
 
 export const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
@@ -18,13 +28,9 @@ export type PageAccess = "full" | "readonly" | "disabled" | "hidden";
 // Escopo de dados: o privilégio vê tudo ou apenas os dados atribuídos a ele
 export type DataScope = "all" | "own";
 
-export type PageKey =
-  | "overview"
-  | "elephan"
-  | "recupera"
-  | "renovacoes"
-  | "analytics"
-  | "alertas";
+// Chave de página: string (não union fechada) para que páginas novas
+// geradas automaticamente funcionem sem alterar tipos em todo o app.
+export type PageKey = string;
 
 export interface FeatureDef {
   key: string;
@@ -61,11 +67,11 @@ export interface Privilege {
   updated_at: string;
 }
 
-// ---- Registry de páginas e funções ----
+// ---- Registry manual (labels, descrições e funções granulares) ----
 // Observação: "Gerenciamento de Usuários" (/usuarios) permanece
 // exclusivo do admin por segurança (cria usuários e privilégios),
 // por isso não faz parte do registry configurável.
-export const PAGES: PageDef[] = [
+const PAGES_MANUAL: PageDef[] = [
   {
     key: "overview",
     label: "Overview",
@@ -117,7 +123,29 @@ export const PAGES: PageDef[] = [
     description: "Histórico de alertas e auditoria",
     features: [],
   },
+  {
+    key: "planos",
+    label: "Planos",
+    href: "/planos",
+    description: "Anotações e planos futuros do time",
+    features: [],
+  },
 ];
+
+// ---- Mesclagem: manual tem prioridade; rotas novas entram sozinhas ----
+const knownKeys = new Set(PAGES_MANUAL.map((p) => p.key));
+const knownHrefs = new Set(PAGES_MANUAL.map((p) => p.href));
+const AUTO_EXTRA: PageDef[] = AUTO_PAGES.filter(
+  (a) => !knownKeys.has(a.key) && !knownHrefs.has(a.href)
+).map((a) => ({
+  key: a.key,
+  label: a.label,
+  href: a.href,
+  description: "Página detectada automaticamente no projeto",
+  features: [],
+}));
+
+export const PAGES: PageDef[] = [...PAGES_MANUAL, ...AUTO_EXTRA];
 
 export const PAGE_MAP: Record<PageKey, PageDef> = Object.fromEntries(
   PAGES.map((p) => [p.key, p])
@@ -130,31 +158,49 @@ export const ACCESS_OPTIONS: { value: PageAccess; label: string }[] = [
   { value: "hidden", label: "Oculta" },
 ];
 
-// ---- Configs padrão ----
+// ---- Configs padrão (derivadas dinamicamente do registry) ----
+
+// Acesso padrão do privilégio "Usuário" por página; o que não estiver
+// aqui (incluindo páginas novas) nasce como "hidden".
+const USER_DEFAULT_ACCESS: Partial<Record<PageKey, PageAccess>> = {
+  overview: "full",
+  elephan: "disabled",
+  recupera: "disabled",
+  renovacoes: "disabled",
+  analytics: "hidden",
+  alertas: "hidden",
+};
+
+// Funções granulares que ficam ativas no padrão "Usuário" (quando a página é acessível)
+const USER_DEFAULT_FEATURES: Partial<Record<PageKey, string[]>> = {
+  overview: ["kpis", "graficos", "tabela"],
+  elephan: ["dashboard", "alertas", "reunioes"],
+};
+
+function ruleFor(page: PageDef, access: PageAccess, scope: DataScope, enabledFeatures: string[]): PageRule {
+  return {
+    access,
+    scope,
+    features: Object.fromEntries(page.features.map((f) => [f.key, enabledFeatures.includes(f.key)])),
+  };
+}
 
 export function defaultAdminConfig(): PrivilegeConfig {
   return {
-    pages: {
-      overview: { access: "full", scope: "all", features: { kpis: true, graficos: true, tabela: true } },
-      elephan: { access: "full", scope: "all", features: { dashboard: true, alertas: true, reunioes: true, playground: true } },
-      recupera: { access: "full", scope: "all", features: {} },
-      renovacoes: { access: "full", scope: "all", features: {} },
-      analytics: { access: "full", scope: "all", features: {} },
-      alertas: { access: "full", scope: "all", features: {} },
-    },
+    pages: Object.fromEntries(
+      PAGES.map((p) => [p.key, ruleFor(p, "full", "all", p.features.map((f) => f.key))])
+    ) as Record<PageKey, PageRule>,
   };
 }
 
 export function defaultUserConfig(): PrivilegeConfig {
   return {
-    pages: {
-      overview: { access: "full", scope: "own", features: { kpis: true, graficos: true, tabela: true } },
-      elephan: { access: "disabled", scope: "own", features: { dashboard: true, alertas: true, reunioes: true, playground: false } },
-      recupera: { access: "disabled", scope: "own", features: {} },
-      renovacoes: { access: "disabled", scope: "own", features: {} },
-      analytics: { access: "hidden", scope: "own", features: {} },
-      alertas: { access: "hidden", scope: "own", features: {} },
-    },
+    pages: Object.fromEntries(
+      PAGES.map((p) => [
+        p.key,
+        ruleFor(p, USER_DEFAULT_ACCESS[p.key] ?? "hidden", "own", USER_DEFAULT_FEATURES[p.key] ?? []),
+      ])
+    ) as Record<PageKey, PageRule>,
   };
 }
 
@@ -163,14 +209,7 @@ export function defaultUserConfig(): PrivilegeConfig {
 export function blankConfig(): PrivilegeConfig {
   return {
     pages: Object.fromEntries(
-      PAGES.map((p) => [
-        p.key,
-        {
-          access: "hidden" as PageAccess,
-          scope: "own" as DataScope,
-          features: Object.fromEntries(p.features.map((f) => [f.key, f.key !== "playground"])),
-        },
-      ])
+      PAGES.map((p) => [p.key, ruleFor(p, "hidden", "own", [])])
     ) as Record<PageKey, PageRule>,
   };
 }

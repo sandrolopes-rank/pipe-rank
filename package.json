@@ -3,10 +3,13 @@
   "version": "0.14.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/gen-privileges-pages.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/gen-privileges-pages.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "gen:privileges": "node scripts/gen-privileges-pages.mjs",
     "version:check": "node scripts/version.mjs --check",
     "version:update": "node scripts/version.mjs --write"
   },

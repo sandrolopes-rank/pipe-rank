@@ -274,6 +274,11 @@ export default function ElephanPage() {
           </div>
         </div>
 
+        {/* Quadro de alertas — função "alertas" (primeiro item do dash) */}
+        {priv.hasFeature("elephan", "alertas") && (
+          <ElephanAlerts itens={itensVisiveis} periodo={{ label: periodo.label }} excluidos={excluidos} autoAbrir={abrirQuadroAuto} />
+        )}
+
         {/* Dashboard de reuniões (função "dashboard") */}
         <ElephanDashboard
           itens={itensVisiveis}
@@ -286,11 +291,6 @@ export default function ElephanPage() {
           readOnly={!priv.canEdit("elephan")}
         />
         </>
-        )}
-
-        {/* Quadro de alertas — função "alertas" (independente do dashboard) */}
-        {priv.hasFeature("elephan", "alertas") && (
-          <ElephanAlerts itens={itensVisiveis} periodo={{ label: periodo.label }} excluidos={excluidos} autoAbrir={abrirQuadroAuto} />
         )}
 
         {/* Painel de reuniões (transcrições da Elephan — função "reunioes") */}

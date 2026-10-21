@@ -257,7 +257,7 @@ export function PrivilegesManager({
                 {p.slug !== "admin" && (
                   <button
                     onClick={() => openEdit(p)}
-                    className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--input-bg)] hover:text-[var(--foreground)]"
                     style={{ color: "var(--muted)" }}
                     title="Editar privilégio"
                   >
@@ -286,7 +286,7 @@ export function PrivilegesManager({
                   ) : (
                     <button
                       onClick={() => setDeleteConfirm(p.id)}
-                      className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--input-bg)] hover:text-[var(--danger)]"
                       style={{ color: "var(--muted)" }}
                       title="Excluir privilégio"
                     >
@@ -379,7 +379,7 @@ export function PrivilegesManager({
                             </div>
                             {/* Segmented: nível de acesso */}
                             <div className="flex items-center rounded-lg overflow-hidden flex-shrink-0" style={{ border: "1px solid var(--input-border)" }}>
-                              {ACCESS_OPTIONS.map((opt) => {
+                              {ACCESS_OPTIONS.map((opt, idx) => {
                                 const Icon = ACCESS_ICON[opt.value];
                                 const active = rule.access === opt.value;
                                 return (
@@ -387,12 +387,16 @@ export function PrivilegesManager({
                                     key={opt.value}
                                     type="button"
                                     onClick={() => setPageAccess(page.key, opt.value)}
-                                    className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-medium transition-all cursor-pointer"
+                                    className={`flex items-center gap-1 px-2.5 py-1.5 text-[10px] font-medium transition-all cursor-pointer ${active ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
                                     title={opt.label}
+                                    aria-pressed={active}
                                     style={{
-                                      background: active ? "var(--nav-active-bg)" : "transparent",
-                                      color: active ? "var(--accent-text)" : "var(--muted)",
-                                      borderRight: "1px solid var(--input-border)",
+                                      background: active
+                                        ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                                        : "transparent",
+                                      color: active ? "#ffffff" : "var(--muted)",
+                                      borderRight: idx < ACCESS_OPTIONS.length - 1 ? "1px solid var(--input-border)" : undefined,
+                                      boxShadow: active ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
                                     }}
                                   >
                                     <Icon size={11} />
@@ -408,29 +412,27 @@ export function PrivilegesManager({
                               {/* Escopo de dados */}
                               <div className="flex items-center gap-4 flex-wrap">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Dados</span>
-                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                <label className="flex items-center gap-1.5 cursor-pointer rounded-lg px-1.5 py-1 transition-all hover:bg-[var(--input-bg)]">
                                   <input
                                     type="radio"
                                     name={`scope-${page.key}`}
                                     checked={rule.scope === "all"}
                                     onChange={() => setPageScope(page.key, "all")}
-                                    className="accent-current"
-                                    style={{ color: "var(--accent-text)" }}
+                                    style={{ accentColor: "var(--accent)" }}
                                   />
                                   <Globe size={11} style={{ color: "var(--muted)" }} />
-                                  <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Ver tudo (geral)</span>
+                                  <span className="text-[11px] font-medium" style={{ color: rule.scope === "all" ? "var(--accent-text)" : "var(--foreground)" }}>Ver tudo (geral)</span>
                                 </label>
-                                <label className="flex items-center gap-1.5 cursor-pointer">
+                                <label className="flex items-center gap-1.5 cursor-pointer rounded-lg px-1.5 py-1 transition-all hover:bg-[var(--input-bg)]">
                                   <input
                                     type="radio"
                                     name={`scope-${page.key}`}
                                     checked={rule.scope === "own"}
                                     onChange={() => setPageScope(page.key, "own")}
-                                    className="accent-current"
-                                    style={{ color: "var(--accent-text)" }}
+                                    style={{ accentColor: "var(--accent)" }}
                                   />
                                   <UserCheck size={11} style={{ color: "var(--muted)" }} />
-                                  <span className="text-[11px]" style={{ color: "var(--foreground)" }}>Somente dados atribuídos</span>
+                                  <span className="text-[11px] font-medium" style={{ color: rule.scope === "own" ? "var(--accent-text)" : "var(--foreground)" }}>Somente dados atribuídos</span>
                                 </label>
                               </div>
 
@@ -442,19 +444,22 @@ export function PrivilegesManager({
                                     return (
                                       <label
                                         key={f.key}
-                                        className="flex items-start gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-all"
-                                        style={{ background: on ? "var(--nav-active-bg)" : "transparent", border: `1px solid ${on ? "var(--nav-active-border)" : "var(--input-border)"}` }}
+                                        className={`flex items-start gap-2 rounded-lg px-2 py-1.5 cursor-pointer transition-all ${on ? "hover:opacity-90" : "hover:bg-[var(--input-bg)] hover:border-[var(--nav-active-border)]"}`}
+                                        style={{
+                                          background: on ? "var(--nav-active-bg)" : "transparent",
+                                          border: `1px solid ${on ? "var(--nav-active-border)" : "var(--input-border)"}`,
+                                        }}
                                         title={f.description}
                                       >
                                         <input
                                           type="checkbox"
                                           checked={on}
                                           onChange={() => toggleFeature(page.key, f.key)}
-                                          className="mt-0.5 accent-current"
-                                          style={{ color: "var(--accent-text)" }}
+                                          className="mt-0.5"
+                                          style={{ accentColor: "var(--accent)" }}
                                         />
                                         <span className="min-w-0">
-                                          <span className="block text-[11px] font-medium leading-tight" style={{ color: "var(--foreground)" }}>{f.label}</span>
+                                          <span className="block text-[11px] font-medium leading-tight" style={{ color: on ? "var(--accent-text)" : "var(--foreground)" }}>{f.label}</span>
                                           <span className="block text-[9px] leading-tight mt-0.5" style={{ color: "var(--muted)" }}>{f.description}</span>
                                         </span>
                                       </label>

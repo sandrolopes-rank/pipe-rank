@@ -23,8 +23,9 @@ export default function PlanosPage() {
         window.location.href = "/login";
         return;
       }
-      // Exclusiva do admin: qualquer outro usuário volta para a home dele
-      if (!priv.isAdmin) {
+      // Guarda por privilégio: admin tem acesso pleno; demais precisam da
+      // página /planos habilitada no privilégio atribuído
+      if (!priv.canOpen("planos")) {
         window.location.href = priv.homeHref === "/planos" ? "/overview" : priv.homeHref;
         return;
       }

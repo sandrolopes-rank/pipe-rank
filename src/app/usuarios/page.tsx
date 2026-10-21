@@ -309,16 +309,18 @@ export default function UsuariosPage() {
         <div className="flex items-center gap-3">
           {/* Tabs: Usuários / + Privilégios */}
           <div
-            className="flex items-center rounded-lg overflow-hidden"
+            className="flex items-center rounded-lg overflow-hidden p-0.5 gap-0.5"
             style={{ border: "1px solid var(--input-border)", background: "var(--input-bg)" }}
           >
             <button
               onClick={() => { setTab("usuarios"); fetchCustomPrivileges(); }}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "usuarios" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
               style={{
-                background: tab === "usuarios" ? "var(--nav-active-bg)" : "transparent",
-                color: tab === "usuarios" ? "var(--accent-text)" : "var(--muted)",
-                border: tab === "usuarios" ? "1px solid var(--nav-active-border)" : "1px solid transparent",
+                background: tab === "usuarios"
+                  ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                  : "transparent",
+                color: tab === "usuarios" ? "#ffffff" : "var(--muted)",
+                boxShadow: tab === "usuarios" ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
               }}
             >
               <Users size={12} />
@@ -326,11 +328,13 @@ export default function UsuariosPage() {
             </button>
             <button
               onClick={() => setTab("privilegios")}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all cursor-pointer"
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "privilegios" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
               style={{
-                background: tab === "privilegios" ? "var(--nav-active-bg)" : "transparent",
-                color: tab === "privilegios" ? "var(--accent-text)" : "var(--muted)",
-                border: tab === "privilegios" ? "1px solid var(--nav-active-border)" : "1px solid transparent",
+                background: tab === "privilegios"
+                  ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                  : "transparent",
+                color: tab === "privilegios" ? "#ffffff" : "var(--muted)",
+                boxShadow: tab === "privilegios" ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
               }}
             >
               {tab === "privilegios" ? <Shield size={12} /> : <Plus size={12} />}

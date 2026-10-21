@@ -19,6 +19,7 @@ import {
   ChevronDown,
   AlertTriangle,
   ClipboardList,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -66,15 +67,18 @@ const READ_MAP_KEY = "alertas_read_v1";
 
 const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 
-// Ícone de cada página do registry de privilégios
-const PAGE_ICONS: Record<PageKey, LucideIcon> = {
+// Ícone de cada página do registry de privilégios; páginas auto-detectadas
+// sem ícone mapeado usam LayoutGrid como fallback
+const PAGE_ICONS: Partial<Record<PageKey, LucideIcon>> = {
   overview: LayoutDashboard,
   elephan: Sparkles,
   recupera: LifeBuoy,
   renovacoes: RefreshCw,
   analytics: BarChart3,
   alertas: AlertTriangle,
+  planos: ClipboardList,
 };
+const pageIcon = (key: PageKey): LucideIcon => PAGE_ICONS[key] ?? LayoutGrid;
 
 // Status encerrados não geram alerta de inatividade
 const CLOSED_STATUSES = new Set(["Fechado", "Assinado", "Perdido", "Proposta Perdida"]);
@@ -631,7 +635,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
           const mainItems = isAdmin
             ? navItems.concat(adminNavItems)
             : resolved && openPages.length > 0
-              ? openPages.map((p) => ({ label: p.label, href: p.href, icon: PAGE_ICONS[p.key] }))
+              ? openPages.map((p) => ({ label: p.label, href: p.href, icon: pageIcon(p.key) }))
               : navItems;
           const sectionLabel = isAdmin
             ? "Admin"
@@ -642,7 +646,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
             ? adminItems
             : !resolved
               ? upcomingItems
-              : blockedPages.map((p) => ({ label: p.label, icon: PAGE_ICONS[p.key] }));
+              : blockedPages.map((p) => ({ label: p.label, icon: pageIcon(p.key) }));
           return (
             <>
         {mainItems.map((item) => {
