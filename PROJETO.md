@@ -10,7 +10,7 @@
 **Produto:** Rank CRM — gestão de pipeline de receita da RankMyApp (Gestão de Receita).
 **Stack:** Next.js 16.3.6 (App Router, Turbopack) · React 19 · TypeScript · Tailwind 4 · Supabase (auth + Postgres + realtime) · Recharts 3 · lucide-react.
 **Deploy:** Vercel, a partir do `main` do repositório `sandrolopes-rank/pipe-rank` (deploy automático no push).
-**Versão:** SemVer simplificado gerido por `scripts/version.mjs` (`npm run version:update|check`). `feat` → MINOR, `fix` → PATCH. Atual: **v0.15**.
+**Versão:** SemVer simplificado gerido por `scripts/version.mjs` (`npm run version:update|check`). `feat` → MINOR, `fix` → PATCH. Atual: **v0.16**.
 
 **Integração Elephan.AI** (página `/elephan`, admin): a Elephan é a plataforma de revenue intelligence que grava/transcreve reuniões do time. A API externa (somente leitura, `https://api.elephan.dev`, auth `Bearer elk_prod_...`) fornece transcrições completas, resumo IA, sentimento (geral e por participante), objeções/churn signals, scorecard, conversas de WhatsApp e insights agrupados. Docs: `https://api.elephan.dev/docs/`. O acesso desta integração é controlado pelo **sistema de privilégios** (abaixo).
 
