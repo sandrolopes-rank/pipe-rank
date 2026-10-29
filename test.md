@@ -378,3 +378,54 @@ completo Admin → Líder → Usuário → Admin.
 - **Legenda customizada com valores e percentuais** (padrão "Distribuição por Status" da Overview): cor por status + nome + `N (xx,xx%)`, **clicável** (abre o drill-down do status), substituindo a `<Legend>` do Recharts.
 - **Total no centro da rosca** ("6 propostas").
 - Validado E2E: legenda renderiza "Em análise 2 (33,3%)", "Sem retorno 1 (16,7%)", etc.; item da legenda abre o drill-down; total central visível; sem overflow. Regressão: unitários 42/42 · build ✓ · dados de teste removidos.
+
+## 20. Rodada 5 — login quebrado de nathalia.simao@ (29-30/10/2026) — RESOLVIDO
+
+**Relato:** Nathalia não logava — por senha "senha incorreta", pelo Google "nada acontece".
+
+### 20.1 Diagnóstico (por exclusão, com evidência de execução)
+| Passo | Resultado |
+|---|---|
+| Conta existe no auth? | Sim (criada 29/10 15:09 pela UI), confirmada, não banida, `last_sign_in_at: null` (nunca logou) |
+| Login por senha | **HTTP 500** `unexpected_failure: Database error querying schema` — NÃO era "senha incorreta" |
+| Senha errada proposital | 500 também → a falha era na CONSULTA do registro, antes de checar a senha |
+| Controle (teste@ c/ senha errada) | 400 normal |
+| Admin API GET/DELETE por id dela | **500** — qualquer query do GoTrue na linha falhava |
+| Google "nada acontece" | mesmo erro de auth no callback (o app redireciona de volta sem mensagem) |
+| Contas antigas (6 usuários) | todas saudáveis — o problema era só dela (criada pelo fluxo novo) |
+
+### 20.2 Causa-raiz (BUG-006 — Alta)
+O cadastro pela UI usava o RPC `create_user_scoped`, que insere **direto em auth.users/auth.identities** com valores divergentes do que o GoTrue grava/exige: `provider_id` = e-mail (GoTrue: UUID do usuário), `instance_id` = UUID zero (hosted: herda o da instância). Linhas assim ficam **invisíveis/inválidas para o GoTrue** → login 500. Contas criadas antes da hierarquia (via `auth.admin.createUser`) eram saudáveis — por isso só a Nathalia (a primeira criada pelo fluxo novo) quebrava.
+
+### 20.3 Correções
+1. **`supabase-fix-auth-insert.sql`**: alinhamento parcial (provider_id/sub = UUID, email_verified) → 500 sumiu.
+2. **`supabase-fix-auth-insert-v2.sql`**: instance_id herdado da instância → GoTrue passou a enxergar as linhas (404/invalid → encontrava, mas hash/estrutura ainda divergentes).
+3. **Decisão arquitetural (v3, definitiva)**: **fim do INSERT direto em auth.users**. `src/app/api/users/create` cria via `auth.admin.createUser` (GoTrue) para **admin OU quem tem `cadastrar_usuarios`**; vínculo líder→novo via novo RPC `link_new_user_hierarchy` (`supabase-fix-auth-insert-v3.sql`, mesma regra do create_user_scoped). UI (`usuarios/page.tsx`) migrateu para a rota com Bearer.
+4. **Conta da Nathalia recriada** pela API oficial do GoTrue com `senha123` (linha antiga removida no SQL).
+
+### 20.4 Validação
+- Login REST da Nathalia: **200 com token** ✓ · senha errada → 400 normal ✓ · admin GET 200 ✓
+- **Login dela pelo app real (navegador): entrou em /overview** ✓ (o cenário exato do relato)
+- Cadastro de teste pelo **formulário** (novo fluxo) → login 200 ✓ → usuário de teste excluído (limpeza) ✓
+- Regressão: unitários 42/42 · API auth 21/21 · build ✓ · lint 0 · tsc 0 · `supabase-fix-auth-insert*.sql` mantidos local (gitignore de *.sql)
+
+### 20.5 Garantia de não-regressão (canário de autenticação)
+A suíte `tests/api/run-api-tests.mjs` ganhou o bloco **T-601..T-605**: cria um usuário pela rota oficial, **loga com as credenciais recém-criadas** (o teste exato que faltava e teria capturado o BUG-006 antes do deploy), verifica que senha errada dá 400 (nunca 500), confere canário de login de usuário pré-existente e remove o usuário de teste. Suíte completa: **26/26 PASS**.
+
+## 21. Rodada 6 — destino pós-login pela primeira página do privilégio (30/10/2026) — RESOLVIDO
+
+**Relato:** Nathalia (privilégio `estrategista`, só Elephan aberta) logava e caía em /overview com a tela "Sem acesso à Overview" em todo login.
+
+### 21.1 Causa
+O login (senha e callback do Google) redirecionava **sempre** para `/overview`, hardcoded; e o guard do Overview renderizava uma tela de beco sem saída em vez de redirecionar (diferente das demais páginas, que levam à home do privilégio).
+
+### 21.2 Correções
+- **`src/lib/home-redirect.ts`** (novo): `firstOpenPage` (primeira página full/readonly na ordem do registry, fallback /overview) e `resolveHomeAfterLogin` (mesma resolução do use-privileges sem React: master → /overview; demais → privilégio do metadata, 'user' → 'usuario').
+- **`login/page.tsx`**: destino pós-senha resolvido pelo helper.
+- **`auth/callback/route.ts`**: login Google sem `?next` explícito também respeita o privilégio.
+- **`overview/page.tsx`**: guard redireciona para `homeHref` quando existe alternativa; o aviso "Nenhuma página liberada" só aparece quando **nenhuma** página está liberada (evita loop).
+
+### 21.3 Validação
+- Unitários: +9 (`home-redirect.test.ts`) — caso Nathalia (estrategista → /elephan), ordem do registry, fallback fail-closed — **51/51**.
+- **E2E navegador: login da Nathalia cai direto em `/elephan`**, zero mensagem de bloqueio, sidebar só com o privilégio dela. Sessão encerrada ao final.
+- Regressão: build ✓ 28 rotas · API 26/26 · lint 0 · tsc 0.

@@ -209,6 +209,51 @@ async function main() {
       r.status === 400 ? "autorizado e validado" : JSON.stringify(r.json).slice(0, 120));
   }
 
+  // ---------- T6xx: canário de autenticação (regressão BUG-006) ----------
+  // O cadastro já gravou linhas em auth.users que o GoTrue não enxergava:
+  // qualquer login falhava (HTTP 500). Este canário garante que um usuário
+  // criado pela rota oficial CONSEGUE LOGAR com a senha cadastrada.
+  {
+    const emailQA = `qa.login.${Date.now()}@rankmyapp.com.br`;
+    const criacao = await callApi("POST", "/api/users/create", {
+      token: adminToken,
+      body: { username: "QA Login", email: emailQA, password: "senha123" },
+    });
+    record("T-601", "Cadastro via /api/users/create (fluxo oficial GoTrue)", "200", String(criacao.status),
+      criacao.status === 200, JSON.stringify(criacao.json).slice(0, 120));
+    if (criacao.status === 200) {
+      // o teste que faltava: o usuário recém-criado consegue logar?
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: ANON_KEY },
+        body: JSON.stringify({ email: emailQA, password: "senha123" }),
+      });
+      const d = await r.json();
+      record("T-602", "Usuário RECÉM-CRIADO consegue logar (500 = BUG-006)", "200", String(r.status),
+        r.status === 200 && !!d.access_token,
+        r.status === 200 ? "linha saudável para o GoTrue" : JSON.stringify(d).slice(0, 120));
+      // senha errada deve dar 400 normal (não 500)
+      const w = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: ANON_KEY },
+        body: JSON.stringify({ email: emailQA, password: "errada" }),
+      });
+      record("T-603", "Senha errada → 400 (nunca 500)", "400", String(w.status), w.status === 400);
+      // canário: usuário pré-existente continua logando
+      try {
+        const canario = await supabaseLogin(USER);
+        record("T-604", "Canário: usuário pré-existente continua logando", "200", canario ? "200" : "falhou", !!canario);
+      } catch (e) {
+        record("T-604", "Canário: usuário pré-existente continua logando", "200", "falhou: " + e.message, false);
+      }
+      // limpeza do usuário de teste
+      const Hsvc = { apikey: envVar("SUPABASE_SERVICE_ROLE_KEY"), Authorization: `Bearer ${envVar("SUPABASE_SERVICE_ROLE_KEY")}` };
+      const idQA = criacao.json?.user?.id;
+      const del = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${idQA}`, { method: "DELETE", headers: Hsvc });
+      record("T-605", "Limpeza: usuário de teste removido", "200", String(del.status), del.status === 200);
+    }
+  }
+
   // ---------- restauração ----------
   const metaOriginal = alvo.meta ?? {};
   const r = await callApi("PATCH", "/api/users/theme", {
