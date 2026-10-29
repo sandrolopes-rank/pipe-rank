@@ -28,6 +28,11 @@ export const AUTO_PAGES: AutoPage[] = [
     "label": "Elephan"
   },
   {
+    "key": "gerencial",
+    "href": "/gerencial",
+    "label": "Gerencial"
+  },
+  {
     "key": "overview",
     "href": "/overview",
     "label": "Overview"
