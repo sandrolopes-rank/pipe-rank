@@ -8,7 +8,7 @@
 // A regra é aplicada por scripts/version.mjs, que deriva a versão dos commits:
 // após um feat/fix rode `npm run version:update` (sincroniza aqui e no
 // package.json) ou audite a consistência com `npm run version:check`.
-export const APP_VERSION = "0.16.0";
+export const APP_VERSION = "0.19.0";
 
 // Forma curta exibida na UI (major.minor), ex.: "v0.11"
 export const APP_VERSION_SHORT = `v${APP_VERSION.split(".").slice(0, 2).join(".")}`;
