@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { getCaller, unauthorized } from "@/lib/api-auth";
+import { callerFeature, callerRpc, getCaller, unauthorized, forbidden } from "@/lib/api-auth";
 
 export async function POST(request: Request) {
-  // Somente admin: líderes cadastram via RPC create_user_scoped
+  // Admin OU quem tiver a função "cadastrar_usuarios" liberada no privilégio
+  // (mesma regra do antigo create_user_scoped). A criação usa a API oficial
+  // do GoTrue (auth.admin.createUser) — inserir direto em auth.users via
+  // SQL gerava linhas que o GoTrue não enxerga (login quebrado).
   const caller = await getCaller(request);
   if (!caller) return unauthorized();
-  if (!caller.isAdmin) return unauthorized("Apenas administradores criam usuários por aqui");
+  if (!caller.isAdmin && !(await callerFeature(request, "usuarios", "cadastrar_usuarios"))) {
+    return forbidden("Seu perfil não permite cadastrar usuários");
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -42,7 +47,7 @@ export async function POST(request: Request) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { username: derivedUsername },
+      user_metadata: { username: derivedUsername, role: "user" },
     });
 
     if (error) {
@@ -57,6 +62,22 @@ export async function POST(request: Request) {
         );
       }
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Quem cadastra (não-admin) torna-se líder do novo usuário — mesma regra
+    // do create_user_scoped, via RPC executado no contexto do chamador.
+    if (!caller.isAdmin) {
+      const { error: hierError } = await callerRpc(request, "link_new_user_hierarchy", {
+        p_member: data.user.id,
+      });
+      if (hierError) {
+        // Usuário criado, mas o vínculo falhou: não falha a operação inteira,
+        // o admin pode vincular na aba Hierarquia.
+        return NextResponse.json({
+          user: { id: data.user.id, email: data.user.email || "" },
+          warning: "Usuário criado, mas não foi possível vinculá-lo à sua hierarquia: " + hierError.message,
+        });
+      }
     }
 
     return NextResponse.json({

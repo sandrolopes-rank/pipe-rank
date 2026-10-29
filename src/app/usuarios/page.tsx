@@ -194,26 +194,37 @@ export default function UsuariosPage() {
     setError(null);
     setSuccess(null);
     try {
-      const { error } = await supabase.rpc("create_user_scoped", {
-        p_username: newUsername,
-        p_email: newEmail,
-        p_password: newPassword,
+      // Criação via API oficial do GoTrue (/api/users/create). O INSERT
+      // direto em auth.users (RPC create_user_scoped) gerava linhas que o
+      // GoTrue não enxerga — login quebrado para o novo usuário.
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/users/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token ?? ""}`,
+        },
+        body: JSON.stringify({ username: newUsername, email: newEmail, password: newPassword }),
       });
-      if (error) {
-        if (error.message.includes("já está cadastrado") || error.message.includes("duplicate") || error.message.includes("unique")) {
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409 || (data.error || "").includes("já está cadastrado")) {
           setError(`O email ${newEmail} já está cadastrado no sistema.`);
         } else {
-          setError(error.message || "Erro ao criar usuário.");
+          setError(data.error || "Erro ao criar usuário.");
         }
-      } else {
-        const virouLider = !priv.actingAsAdmin ? " e vinculado à sua equipe" : "";
-        setSuccess(`Usuário ${newUsername || newEmail.split("@")[0]} criado com sucesso${virouLider}!`);
-        setNewUsername("");
-        setNewEmail("");
-        setNewPassword("");
-        setShowCreateModal(false);
-        await fetchUsers();
+        return;
       }
+      if (data.warning) {
+        setError(data.warning);
+      }
+      const virouLider = !priv.actingAsAdmin ? " e vinculado à sua equipe" : "";
+      setSuccess(`Usuário ${newUsername || newEmail.split("@")[0]} criado com sucesso${virouLider}!`);
+      setNewUsername("");
+      setNewEmail("");
+      setNewPassword("");
+      setShowCreateModal(false);
+      await fetchUsers();
     } catch {
       setError("Erro de conexão ao criar usuário.");
     }

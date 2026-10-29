@@ -71,8 +71,7 @@ export async function getCaller(request: Request): Promise<Caller | null> {
   return resolveCaller(supabase, userData.user);
 }
 
-// Resolve o chamador aceitando Bearer OU a sessão de cookies do browser.
-// Necessário porque os consumidores do proxy da Elephan e da rota de tema
+// Resolve o chamador aceitando Bearer OU a sessão de cookies do browser.// Necessário porque os consumidores do proxy da Elephan e da rota de tema
 // fazem fetch same-origin sem header Authorization (a sessão vai por cookie).
 export async function getCallerWithSession(
   request: Request
@@ -88,5 +87,45 @@ export async function getCallerWithSession(
     return resolveCaller(supabase, user);
   } catch {
     return null;
+  }
+}
+
+// Executa uma RPC como o CHAMADOR (contexto auth.uid() dele), usando o
+// mesmo client Bearer do getCaller. Usado para validar features do
+// privilégio (caller_feature) e operações que precisam do contexto do
+// usuário fora das rotas de service role.
+export async function callerRpc(
+  request: Request,
+  fn: string,
+  args: Record<string, unknown>
+): Promise<{ data: unknown; error: { message: string } | null }> {
+  const auth = request.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!token || !url || !anon) return { data: null, error: { message: "Sem credenciais" } };
+
+  const supabase = createClient(url, anon, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data, error } = await supabase.rpc(fn, args);
+  return { data, error: error ? { message: error.message } : null };
+}
+
+// Feature granular do privilégio do chamador (RPC caller_feature)
+export async function callerFeature(
+  request: Request,
+  page: string,
+  feature: string
+): Promise<boolean> {
+  try {
+    const { data, error } = await callerRpc(request, "caller_feature", {
+      p_page: page,
+      p_feature: feature,
+    });
+    return !error && data === true;
+  } catch {
+    return false;
   }
 }
