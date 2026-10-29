@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { resolveHomeAfterLogin } from "@/lib/home-redirect";
 import { Briefcase, Mail, Lock, Loader2, Globe, KeyRound } from "lucide-react";
 
 const ALLOWED_DOMAIN = "rankmyapp.com.br";
@@ -50,7 +51,10 @@ export default function LoginPage() {
         .then(() => {});
     }
 
-    router.push("/overview");
+    // Destino: primeira página que o privilégio do usuário libera
+    // (quem não tem Overview cai direto na sua página inicial, sem aviso)
+    const destino = await resolveHomeAfterLogin(supabase, data.user);
+    router.push(destino);
     router.refresh();
   }
 

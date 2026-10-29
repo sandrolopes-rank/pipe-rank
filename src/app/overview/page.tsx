@@ -911,8 +911,20 @@ export default function OverviewPage() {
     observacoes_2: "Observações 2",
   };
 
-  // Guarda por privilégio: página oculta ou bloqueada não renderiza conteúdo
+  // Guarda por privilégio: página oculta ou bloqueada → leva o usuário à
+  // primeira página que o privilégio libera (ex.: Nathalia → /elephan).
+  // O aviso "Sem acesso" só aparece quando NENHUMA página está liberada
+  // (homeHref cai no fallback /overview).
   if (!priv.loading && priv.email && !priv.canOpen("overview")) {
+    if (priv.homeHref !== "/overview") {
+      return (
+        <DashboardLayout userEmail={userEmail}>
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: "var(--accent)" }} />
+          </div>
+        </DashboardLayout>
+      );
+    }
     return (
       <DashboardLayout userEmail={userEmail}>
         <div className="flex flex-col items-center justify-center py-24 gap-3">
@@ -923,10 +935,10 @@ export default function OverviewPage() {
             <Lock size={22} style={{ color: "var(--muted)" }} />
           </div>
           <h2 className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-            Sem acesso à Overview
+            Nenhuma página liberada
           </h2>
           <p className="text-xs text-center max-w-sm" style={{ color: "var(--muted)" }}>
-            O privilégio atribuído ao seu usuário não libera esta página. Fale com o administrador para ajustar seus acessos.
+            O privilégio atribuído ao seu usuário não libera nenhuma página. Fale com o administrador para ajustar seus acessos.
           </p>
         </div>
       </DashboardLayout>

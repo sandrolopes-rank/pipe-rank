@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { resolveHomeAfterLogin } from "@/lib/home-redirect";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -35,7 +36,17 @@ export async function GET(request: Request) {
         }
       }
 
-      return NextResponse.redirect(`${origin}${next}`);
+      // Destino: primeira página que o privilégio libera (next explícito tem prioridade)
+      let destino = next;
+      if (!searchParams.get("next")) {
+        try {
+          destino = await resolveHomeAfterLogin(supabase, user);
+        } catch {
+          destino = "/overview";
+        }
+      }
+
+      return NextResponse.redirect(`${origin}${destino}`);
     }
   }
 
