@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getCallerWithSession, unauthorized } from "@/lib/api-auth";
 
 // Proxy de consulta à API externa da Elephan (somente leitura, GET).
 // Resolve a chave de API nesta ordem:
@@ -37,6 +38,13 @@ async function chaveDoSupabase(): Promise<string | null> {
 }
 
 export async function POST(request: NextRequest) {
+  // Sessão obrigatória: o proxy gasta a chave da API da Elephan do servidor.
+  // Sem este check, qualquer chamador anônimo podia consultar os dados do
+  // time (reuniões, transcrições) e consumir a quota da chave. Aceita Bearer
+  // ou a sessão de cookies (consumidores da UI fazem fetch same-origin).
+  const caller = await getCallerWithSession(request);
+  if (!caller) return unauthorized();
+
   try {
     const { path: apiPath, apiKey } = await request.json();
 

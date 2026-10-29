@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { forbidden, getCallerWithSession, unauthorized } from "@/lib/api-auth";
 
 export async function PATCH(request: Request) {
+  // Autenticação obrigatória: esta rota escreve em user_metadata via service
+  // role e antes aceitava qualquer chamada anônima com userId arbitrário
+  // (escrita não autenticada em metadata de terceiros). Uso legítimo é
+  // self-service: o usuário só altera o próprio tema. Aceita Bearer ou a
+  // sessão de cookies.
+  const caller = await getCallerWithSession(request);
+  if (!caller) return unauthorized();
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -27,6 +36,10 @@ export async function PATCH(request: Request) {
         { error: "userId é obrigatório." },
         { status: 400 }
       );
+    }
+
+    if (userId !== caller.userId) {
+      return forbidden("Você só pode alterar o seu próprio tema.");
     }
 
     // Get current user metadata

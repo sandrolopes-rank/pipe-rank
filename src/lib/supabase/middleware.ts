@@ -34,7 +34,8 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect routes: redirect to login if not authenticated
-  // Allow /api/ routes without auth - they use service_role_key internally
+  // Allow /api/ routes without cookie session - cada rota /api/* valida o
+  // chamador por conta própria (JWT Bearer ou sessão, via src/lib/api-auth.ts)
   if (
     !user &&
     !request.nextUrl.pathname.startsWith("/login") &&

@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJs } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/server";
+import { getCallerWithSession, unauthorized } from "@/lib/api-auth";
 
 // Salva a chave de API da Elephan na tabela app_config (Supabase).
 // Somente o admin do CRM pode chamar esta rota — a chave vale para todos
 // os usuários imediatamente (o proxy lê via service role).
-const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
+// Autorização padronizada no mecanismo central (role 'admin' no metadata
+// ou e-mail master), aceitando Bearer ou a sessão de cookies.
 
 export async function POST(request: NextRequest) {
   try {
     // valida a sessão e o perfil de admin
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email || user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    const caller = await getCallerWithSession(request);
+    if (!caller) return unauthorized();
+    if (!caller.isAdmin) {
       return NextResponse.json({ error: "Somente o admin pode configurar a chave." }, { status: 403 });
     }
 
