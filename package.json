@@ -1,6 +1,6 @@
 {
   "name": "rank-crm",
-  "version": "0.19.0",
+  "version": "0.19.2",
   "private": true,
   "scripts": {
     "predev": "node scripts/gen-privileges-pages.mjs",
