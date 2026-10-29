@@ -17,7 +17,7 @@ export function DashboardLayout({
       <div className="hidden lg:block">
         <Sidebar userEmail={userEmail} activeCount={activeCount} />
       </div>
-      <main className="flex-1 lg:ml-56">
+      <main className="flex-1 lg:ml-56 min-w-0">
         <div className="w-full lg:w-[90%] mx-auto p-4 lg:p-6">{children}</div>
         {/* Footer */}
         <footer className="py-6 text-center" style={{ borderTop: "1px solid var(--table-border)" }}>

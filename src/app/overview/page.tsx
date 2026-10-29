@@ -241,10 +241,35 @@ export default function OverviewPage() {
   const seesAllOverview = priv.loading
     ? currentUser?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
     : priv.seesAll("overview");
+  const scopeOverview = priv.loading ? "own" : priv.scope("overview");
   const canEditOverview = priv.loading ? true : priv.canEdit("overview");
   const featKpis = priv.loading ? true : priv.hasFeature("overview", "kpis");
   const featGraficos = priv.loading ? true : priv.hasFeature("overview", "graficos");
   const featTabela = priv.loading ? true : priv.hasFeature("overview", "tabela");
+
+  // Escopo 'hierarchy': carrega os e-mails de self + descendentes da equipe
+  const [hierarchySet, setHierarchySet] = useState<Set<string> | null>(null);
+  useEffect(() => {
+    if (priv.loading || priv.actingAsAdmin || scopeOverview !== "hierarchy") return;
+    let disposed = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data } = await supabase.rpc("list_hierarchy_emails");
+        if (!disposed) {
+          const emails = ((data ?? []) as { email?: string }[]).map((e) =>
+            String(e?.email ?? "").toLowerCase()
+          ).filter(Boolean);
+          setHierarchySet(new Set(emails));
+        }
+      } catch {
+        if (!disposed) setHierarchySet(new Set());
+      }
+    })();
+    return () => {
+      disposed = true;
+    };
+  }, [priv.loading, priv.actingAsAdmin, scopeOverview, priv.mode]);
 
   // Fetch data
   useEffect(() => {
@@ -258,22 +283,20 @@ export default function OverviewPage() {
         setCurrentUser({ id: user.id, email: user.email });
         setIsAdmin(user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
 
-        // Fetch all available users for admin assignment dropdown
-        if (user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-          try {
-            const res = await fetch("/api/users");
-            const data = await res.json();
-            if (res.ok && data.users) {
-              setAvailableUsers(data.users.map((u: { id: string; email: string }) => ({ id: u.id, email: u.email })));
-            } else {
-              // Fallback to current user only
-              setAvailableUsers([{ id: user.id, email: user.email }]);
-            }
-          } catch {
-            setAvailableUsers([{ id: user.id, email: user.email }]);
+        // Usuários disponíveis para atribuição de owner:
+        //  - admin (modo admin): todos (via RPC com escopo do banco)
+        //  - demais (ex.: master em modo Líder): a própria hierarquia
+        try {
+          if (priv.actingAsAdmin) {
+            const { data: scopedUsers } = await supabase.rpc("list_users_scoped");
+            const lista = ((scopedUsers ?? []) as { id: string; email: string }[]).filter((u) => u.email);
+            setAvailableUsers(lista.length > 0 ? lista : [{ id: user.id, email: user.email }]);
+          } else {
+            const { data: emails } = await supabase.rpc("list_hierarchy_emails");
+            const lista = ((emails ?? []) as string[]).map((e) => ({ id: e, email: e }));
+            setAvailableUsers(lista.length > 0 ? lista : [{ id: user.id, email: user.email }]);
           }
-        } else {
-          // Non-admin users can only assign to themselves
+        } catch {
           setAvailableUsers([{ id: user.id, email: user.email }]);
         }
       }
@@ -290,7 +313,8 @@ export default function OverviewPage() {
       setLoading(false);
     }
     fetchData();
-  }, []);
+    // refaz o fetch ao trocar o modo Admin ↔ Líder (availableUsers muda)
+  }, [priv.actingAsAdmin]);
 
   // Realtime subscription
   useEffect(() => {
@@ -321,13 +345,19 @@ export default function OverviewPage() {
   }, []);
 
   // Escopo de dados do privilégio: 'own' filtra pelas oportunidades atribuídas
-  // ao usuário logado (owner_email); 'all' vê geral.
+  // ao usuário logado (owner_email); 'hierarchy' por self + equipe;
+  // 'all' vê geral.
   const scopedOpportunities = useMemo(() => {
     if (seesAllOverview) return opportunities;
+    if (scopeOverview === "hierarchy") {
+      // aguardando a árvore da equipe: nada exibido por enquanto
+      if (!hierarchySet) return [];
+      return opportunities.filter((o) => hierarchySet.has((o.owner_email || "").toLowerCase()));
+    }
     const mail = currentUser?.email?.toLowerCase();
     if (!mail) return opportunities;
     return opportunities.filter((o) => o.owner_email?.toLowerCase() === mail);
-  }, [opportunities, seesAllOverview, currentUser]);
+  }, [opportunities, seesAllOverview, scopeOverview, hierarchySet, currentUser]);
 
   // Arquivadas saem da tabela e dos gráficos (o dado fica salvo no banco)
   const visibleOpportunities = scopedOpportunities.filter((o) => !o.arquivada);
@@ -448,7 +478,9 @@ export default function OverviewPage() {
   })();
 
   // Clientes por calor (para o modal de detalhe do Mapa de Calor)
-  const clientesPorCalor = useMemo(() => {
+  // (sem useMemo manual: o React Compiler memoiza e a memoização manual
+  // não era preservável — erro react-hooks/preserve-manual-memoization)
+  const clientesPorCalor = (() => {
     const groups: Record<string, typeof activeOpportunities> = { Quente: [], Morno: [], Frio: [] };
     activeOpportunities.forEach((o) => {
       if (groups[o.calor]) groups[o.calor].push(o);
@@ -482,7 +514,7 @@ export default function OverviewPage() {
         }))
         .sort((a, b) => b.upsell - a.upsell),
     };
-  }, [activeOpportunities]);
+  })();
 
   // Chart data - Upsell por mês (active opportunities only)
   const chartDataUpsell = (() => {
@@ -658,7 +690,9 @@ export default function OverviewPage() {
   ];
 
   // Table filtering & pagination
-  const filteredOpportunities = useMemo(() => {
+  // (sem useMemo manual: o React Compiler memoiza e a memoização manual
+  // não era preservável — erro react-hooks/preserve-manual-memoization)
+  const filteredOpportunities = (() => {
     let result = visibleOpportunities;
     if (search) {
       const s = search.toLowerCase();
@@ -680,7 +714,7 @@ export default function OverviewPage() {
       result = result.filter((o) => o.responsavel === filterResponsavel);
     }
     return result;
-  }, [visibleOpportunities, search, filterStatus, filterCalor, filterResponsavel]);
+  })();
 
   const totalPages = Math.max(1, Math.ceil(filteredOpportunities.length / perPage));
 
@@ -698,7 +732,9 @@ export default function OverviewPage() {
   }
 
   // Sort filtered opportunities
-  const sortedOpportunities = useMemo(() => {
+  // (sem useMemo manual: o React Compiler memoiza e a memoização manual
+  // não era preservável — erro react-hooks/preserve-manual-memoization)
+  const sortedOpportunities = (() => {
     if (!sortColumn) return filteredOpportunities;
     return [...filteredOpportunities].sort((a, b) => {
       const aVal = a[sortColumn as keyof Opportunity];
@@ -709,17 +745,16 @@ export default function OverviewPage() {
       }
       return String(aVal ?? "").localeCompare(String(bVal ?? "")) * dir;
     });
-  }, [filteredOpportunities, sortColumn, sortDirection]);
+  })();
 
   const paginatedOpportunities = sortedOpportunities.slice(
     (page - 1) * perPage,
     page * perPage
   );
 
-  const uniqueResponsaveis = useMemo(
-    () => [...new Set(visibleOpportunities.map((o) => o.responsavel).filter(Boolean))],
-    [visibleOpportunities]
-  );
+  const uniqueResponsaveis = [
+    ...new Set(visibleOpportunities.map((o) => o.responsavel).filter(Boolean)),
+  ];
 
   function openCreateModal() {
     if (!canEditOverview) return; // privilégio somente-visualização
@@ -1332,7 +1367,11 @@ export default function OverviewPage() {
                       }}
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
-                        const item = payload[0].payload as any;
+                        const item = payload[0].payload as {
+                          value?: number | string;
+                          count?: number;
+                          clients?: string[];
+                        };
                         const itemColor = Number(item.value) < 0 ? "#f43f5e" : currentSlide.color;
                         return (
                           <div style={{ padding: "10px 14px", minWidth: "180px" }}>
@@ -1343,7 +1382,7 @@ export default function OverviewPage() {
                             {item.count !== undefined && (
                               <p style={{ color: "var(--muted)", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
                             )}
-                            {item.clients?.length > 0 && (
+                            {item.clients && item.clients.length > 0 && (
                               <div style={{ borderTop: `1px solid ${currentSlide.color}30`, paddingTop: 8 }}>
                                 <p style={{ color: currentSlide.color, fontSize: 10, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Clientes ({item.clients.length})</p>
                                 {item.clients.slice(0, 5).map((c: string, i: number) => (
@@ -1432,7 +1471,11 @@ export default function OverviewPage() {
                       }}
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
-                        const item = payload[0].payload as any;
+                        const item = payload[0].payload as {
+                          value?: number | string;
+                          count?: number;
+                          clients?: string[];
+                        };
                         return (
                           <div style={{ padding: "10px 14px", minWidth: "180px" }}>
                             <p style={{ color: "var(--foreground)", marginBottom: 6, fontSize: 12, fontWeight: 600, textTransform: "capitalize" }}>{label}</p>
@@ -1442,7 +1485,7 @@ export default function OverviewPage() {
                             {item.count !== undefined && (
                               <p style={{ color: "var(--muted)", fontSize: 11, marginBottom: 4 }}>{item.count} negociação(ões)</p>
                             )}
-                            {item.clients?.length > 0 && (
+                            {item.clients && item.clients.length > 0 && (
                               <div style={{ borderTop: `1px solid ${currentSlide.color}30`, paddingTop: 8 }}>
                                 <p style={{ color: currentSlide.color, fontSize: 10, marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Clientes ({item.clients.length})</p>
                                 {item.clients.slice(0, 5).map((c: string, i: number) => (
