@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getCaller, unauthorized } from "@/lib/api-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  // Rota agora é admin-only: a listagem escopada (líder/colaborador) usa a
+  // RPC list_users_scoped direto do client (autenticada por sessão)
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.isAdmin) return unauthorized("Apenas administradores listam todos os usuários");
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

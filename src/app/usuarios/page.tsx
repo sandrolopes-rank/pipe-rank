@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardLayout } from "@/components/dashboard-layout";
-import { useTheme } from "@/lib/theme/ThemeContext";
 import { PrivilegesManager } from "@/components/privileges-manager";
+import { HierarchyManager } from "@/components/hierarchy-manager";
+import { usePrivileges } from "@/lib/use-privileges";
 import { ADMIN_EMAIL, type Privilege } from "@/lib/privileges";
 import {
   Users,
@@ -22,6 +23,8 @@ import {
   Ban,
   RotateCcw,
   Lock,
+  Network,
+  Pencil,
   User as UserIcon,
 } from "lucide-react";
 
@@ -37,11 +40,12 @@ interface AuthUser {
 }
 
 export default function UsuariosPage() {
-  const { mode } = useTheme();
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const priv = usePrivileges();
+  const supabase = createClient();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<AuthUser[]>([]);
+  const [tab, setTab] = useState<"usuarios" | "hierarquia" | "privilegios">("usuarios");
+  const [customPrivileges, setCustomPrivileges] = useState<Privilege[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
@@ -53,8 +57,21 @@ export default function UsuariosPage() {
   const [resetPasswordUser, setResetPasswordUser] = useState<string | null>(null);
   const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
-  const [tab, setTab] = useState<"usuarios" | "privilegios">("usuarios");
-  const [customPrivileges, setCustomPrivileges] = useState<Privilege[]>([]);
+  const [editingName, setEditingName] = useState<{ id: string; value: string } | null>(null);
+
+  // Funções do privilégio sobre a página Usuários (admin master: todas)
+  const can = {
+    privileges: priv.hasFeature("usuarios", "administrar_privilegios"),
+    create: priv.hasFeature("usuarios", "cadastrar_usuarios"),
+    edit: priv.hasFeature("usuarios", "editar_usuarios"),
+    password: priv.hasFeature("usuarios", "alterar_senha"),
+    role: priv.hasFeature("usuarios", "alterar_privilegio"),
+    block: priv.hasFeature("usuarios", "bloquear_usuarios"),
+    delete: priv.hasFeature("usuarios", "deletar_usuarios"),
+    hierarchy: priv.hasFeature("usuarios", "atribuir_hierarquia"),
+  };
+  const temAbaPriv = can.privileges;
+  const temAbaHier = can.hierarchy;
 
   function handleManagerFeedback(kind: "error" | "success", msg: string) {
     if (!msg) {
@@ -71,31 +88,12 @@ export default function UsuariosPage() {
     }
   }
 
-  useEffect(() => {
-    async function checkAuth() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        window.location.href = "/login";
-        return;
-      }
-      setUserEmail(user.email);
-      const admin = user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      setIsAdmin(admin);
-      if (!admin) {
-        window.location.href = "/overview";
-        return;
-      }
-      await fetchUsers();
-      await fetchCustomPrivileges();
-      setLoading(false);
-    }
-    checkAuth();
-  }, []);
-
-  async function fetchCustomPrivileges() {
+  const fetchCustomPrivileges = useCallback(async () => {
     try {
-      const res = await fetch("/api/privileges");
+      const token = (await supabase.auth.getSession()).data.session?.access_token ?? "";
+      const res = await fetch("/api/privileges", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       if (res.ok) {
         setCustomPrivileges((data.privileges ?? []).filter((p: Privilege) => !p.is_system));
@@ -103,51 +101,78 @@ export default function UsuariosPage() {
     } catch {
       // sem a lista custom, o select mostra apenas Usuário/Admin
     }
-  }
+  }, [supabase]);
 
-  async function fetchUsers() {
-    try {
-      const res = await fetch("/api/users");
-      const data = await res.json();
-      if (!res.ok) {
-        console.error("API /api/users error:", data.error);
-        setError(`Erro ao carregar usuários: ${data.error || 'Erro desconhecido'}.`);
-      } else if (data.users) {
-        setUsers(data.users.map((u: AuthUser) => ({
-          ...u,
-          role: u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : (u.role || 'user'),
-        })));
-      }
-    } catch (err) {
-      console.error("Fetch /api/users failed:", err);
-      setError("Erro de conexão ao buscar usuários.");
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUsers([{
-          id: user.id,
-          email: user.email || '',
-          created_at: user.created_at,
-          last_sign_in_at: user.last_sign_in_at ?? null,
-          email_confirmed_at: user.email_confirmed_at ?? null,
-          role: user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase() ? 'admin' : 'user',
-          username: user.email?.split("@")[0] || '',
-          banned_until: null,
-        }]);
+  // Guarda por privilégio
+  useEffect(() => {
+    if (priv.loading) return;
+    if (!priv.email) {
+      window.location.href = "/login";
+      return;
+    }
+    if (!priv.canOpen("usuarios")) {
+      window.location.href = priv.homeHref === "/usuarios" ? "/overview" : priv.homeHref;
+      return;
+    }
+    Promise.resolve().then(() => {
+      fetchCustomPrivileges();
+    });
+  }, [priv, fetchCustomPrivileges]);
+
+  const fetchUsers = useCallback(async () => {
+    const { data, error } = await supabase.rpc("list_users_scoped");
+    if (error) {
+      setError(`Erro ao carregar usuários: ${error.message}. Verifique se o SQL supabase-hierarquia.sql foi rodado.`);
+      return;
+    }
+    let lista = (data ?? []) as Record<string, unknown>[];
+    // Modo de atuação (master conferindo um privilégio a si): a RPC resolve o
+    // escopo pelo chamador REAL — e o master é sempre admin para o banco —,
+    // então o escopo do privilégio em atuação é aplicado aqui:
+    //   all       → sem filtro
+    //   hierarchy → self + descendentes (priv.hierarchyEmails)
+    //   own       → somente o próprio usuário
+    if (!priv.loading && !priv.actingAsAdmin) {
+      const escopo = priv.scope("usuarios");
+      const self = (priv.email || "").toLowerCase();
+      if (escopo === "own") {
+        lista = lista.filter((u) => ((u.email as string) || "").toLowerCase() === self);
+      } else if (escopo === "hierarchy") {
+        const permitidos = new Set(priv.hierarchyEmails.map((e) => e.toLowerCase()));
+        lista = lista.filter((u) => permitidos.has(((u.email as string) || "").toLowerCase()));
       }
     }
-  }
+    setUsers(
+      lista.map((u) => ({
+        id: u.id as string,
+        email: (u.email as string) || "",
+        created_at: u.created_at as string,
+        last_sign_in_at: (u.last_sign_in_at as string | null) ?? null,
+        email_confirmed_at: (u.email_confirmed_at as string | null) ?? null,
+        role: ((u.raw_user_meta_data as Record<string, unknown>)?.role as string) || "user",
+        username: ((u.raw_user_meta_data as Record<string, unknown>)?.username as string) || ((u.email as string)?.split("@")[0] ?? ""),
+        banned_until: (u.banned_until as string | null) ?? null,
+      }))
+    );
+  }, [supabase, priv.loading, priv.actingAsAdmin, priv.email, priv.scope, priv.hierarchyEmails]);
+
+  useEffect(() => {
+    Promise.resolve().then(async () => {
+      if (priv.loading || !priv.email) return;
+      setLoading(true);
+      await fetchUsers();
+      setLoading(false);
+    });
+  }, [priv.loading, priv.email, tab, fetchUsers]);
 
   async function handleSetRole(userId: string, newRole: string) {
     try {
-      const res = await fetch("/api/users/role", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, role: newRole }),
+      const { error } = await supabase.rpc("set_user_role_scoped", {
+        p_target: userId,
+        p_new_role: newRole,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError("Erro ao alterar privilégio: " + (data.error || "Erro desconhecido"));
+      if (error) {
+        setError("Erro ao alterar privilégio: " + error.message);
       } else {
         const nomePriv =
           newRole === "admin"
@@ -168,23 +193,21 @@ export default function UsuariosPage() {
     setSaving(true);
     setError(null);
     setSuccess(null);
-
     try {
-      const res = await fetch("/api/users/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: newUsername, email: newEmail, password: newPassword }),
+      const { error } = await supabase.rpc("create_user_scoped", {
+        p_username: newUsername,
+        p_email: newEmail,
+        p_password: newPassword,
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.error && (data.error.includes("duplicate") || data.error.includes("already registered") || data.error.includes("unique constraint"))) {
+      if (error) {
+        if (error.message.includes("já está cadastrado") || error.message.includes("duplicate") || error.message.includes("unique")) {
           setError(`O email ${newEmail} já está cadastrado no sistema.`);
         } else {
-          setError(data.error || "Erro ao criar usuário.");
+          setError(error.message || "Erro ao criar usuário.");
         }
       } else {
-        setSuccess(`Usuário ${newUsername || newEmail.split("@")[0]} criado com sucesso!`);
+        const virouLider = !priv.actingAsAdmin ? " e vinculado à sua equipe" : "";
+        setSuccess(`Usuário ${newUsername || newEmail.split("@")[0]} criado com sucesso${virouLider}!`);
         setNewUsername("");
         setNewEmail("");
         setNewPassword("");
@@ -205,16 +228,14 @@ export default function UsuariosPage() {
     setResetSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/users/reset-password", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, newPassword: resetPasswordValue }),
+      const { error } = await supabase.rpc("reset_password_scoped", {
+        p_target: userId,
+        p_password: resetPasswordValue,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError("Erro ao redefinir senha: " + (data.error || "Erro desconhecido"));
+      if (error) {
+        setError("Erro ao redefinir senha: " + error.message);
       } else {
-        const user = users.find(u => u.id === userId);
+        const user = users.find((u) => u.id === userId);
         setSuccess(`Senha de ${user?.username || user?.email?.split("@")[0]} redefinida com sucesso.`);
         setResetPasswordUser(null);
         setResetPasswordValue("");
@@ -228,16 +249,14 @@ export default function UsuariosPage() {
   async function handleToggleActive(userId: string, currentlyBanned: boolean) {
     setError(null);
     try {
-      const res = await fetch("/api/users/toggle-active", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, banDuration: currentlyBanned ? "none" : "876600h" }),
+      const { error } = await supabase.rpc("toggle_active_scoped", {
+        p_target: userId,
+        p_ban: !currentlyBanned,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError("Erro ao alterar status: " + (data.error || "Erro desconhecido"));
+      if (error) {
+        setError("Erro ao alterar status: " + error.message);
       } else {
-        const user = users.find(u => u.id === userId);
+        const user = users.find((u) => u.id === userId);
         const name = user?.username || user?.email?.split("@")[0];
         setSuccess(currentlyBanned ? `${name} reativado com sucesso.` : `${name} desativado com sucesso.`);
         await fetchUsers();
@@ -254,16 +273,11 @@ export default function UsuariosPage() {
       return;
     }
     try {
-      const res = await fetch("/api/users/delete", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: id }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError("Erro ao excluir usuário: " + (data.error || "Erro desconhecido"));
+      const { error } = await supabase.rpc("delete_user_scoped", { p_target: id });
+      if (error) {
+        setError("Erro ao excluir usuário: " + error.message);
       } else {
-        const user = users.find(u => u.id === id);
+        const user = users.find((u) => u.id === id);
         const name = user?.username || email.split("@")[0];
         setSuccess(`Usuário ${name} excluído permanentemente.`);
         setUsers(users.filter((u) => u.id !== id));
@@ -274,7 +288,27 @@ export default function UsuariosPage() {
     setDeleteConfirm(null);
   }
 
-  if (loading) {
+  async function handleRename(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingName || !editingName.value.trim()) return;
+    try {
+      const { error } = await supabase.rpc("rename_user_scoped", {
+        p_target: editingName.id,
+        p_username: editingName.value,
+      });
+      if (error) {
+        setError("Erro ao renomear: " + error.message);
+      } else {
+        setSuccess("Nome de usuário atualizado.");
+        setEditingName(null);
+        await fetchUsers();
+      }
+    } catch {
+      setError("Erro de conexão ao renomear.");
+    }
+  }
+
+  if (loading && users.length === 0 && !priv.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--background)" }}>
         <div className="text-sm" style={{ color: "var(--muted)" }}>Carregando...</div>
@@ -282,13 +316,15 @@ export default function UsuariosPage() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!priv.canOpen("usuarios")) return null;
 
-  const activeUsers = users.filter(u => !u.banned_until);
-  const bannedUsers = users.filter(u => !!u.banned_until);
+  const activeUsers = users.filter((u) => !u.banned_until);
+  const bannedUsers = users.filter((u) => !!u.banned_until);
+  const isMasterRow = (u: AuthUser) =>
+    u.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
   return (
-    <DashboardLayout userEmail={userEmail}>
+    <DashboardLayout userEmail={priv.email}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
@@ -303,17 +339,21 @@ export default function UsuariosPage() {
           </div>
           <div>
             <h1 className="text-lg font-bold" style={{ color: "var(--foreground)" }}>Gerenciamento de Usuários</h1>
-            <p className="text-xs" style={{ color: "var(--muted)" }}>Acesso restrito ao administrador</p>
+            <p className="text-xs" style={{ color: "var(--muted)" }}>
+              {priv.actingAsAdmin
+                ? "Acesso restrito ao administrador"
+                : `Suas permissões vêm do privilégio "${customPrivileges.find((p) => p.slug === priv.roleSlug)?.name ?? priv.roleSlug}"`}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Tabs: Usuários / + Privilégios */}
+          {/* Tabs: Usuários / Hierarquia / Privilégios */}
           <div
             className="flex items-center rounded-lg overflow-hidden p-0.5 gap-0.5"
             style={{ border: "1px solid var(--input-border)", background: "var(--input-bg)" }}
           >
             <button
-              onClick={() => { setTab("usuarios"); fetchCustomPrivileges(); }}
+              onClick={() => setTab("usuarios")}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "usuarios" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
               style={{
                 background: tab === "usuarios"
@@ -326,22 +366,40 @@ export default function UsuariosPage() {
               <Users size={12} />
               Usuários
             </button>
-            <button
-              onClick={() => setTab("privilegios")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "privilegios" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
-              style={{
-                background: tab === "privilegios"
-                  ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
-                  : "transparent",
-                color: tab === "privilegios" ? "#ffffff" : "var(--muted)",
-                boxShadow: tab === "privilegios" ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
-              }}
-            >
-              {tab === "privilegios" ? <Shield size={12} /> : <Plus size={12} />}
-              Privilégios
-            </button>
+            {temAbaHier && (
+              <button
+                onClick={() => setTab("hierarquia")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "hierarquia" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
+                style={{
+                  background: tab === "hierarquia"
+                    ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                    : "transparent",
+                  color: tab === "hierarquia" ? "#ffffff" : "var(--muted)",
+                  boxShadow: tab === "hierarquia" ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
+                }}
+              >
+                <Network size={12} />
+                Hierarquia
+              </button>
+            )}
+            {temAbaPriv && (
+              <button
+                onClick={() => setTab("privilegios")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${tab === "privilegios" ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
+                style={{
+                  background: tab === "privilegios"
+                    ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                    : "transparent",
+                  color: tab === "privilegios" ? "#ffffff" : "var(--muted)",
+                  boxShadow: tab === "privilegios" ? "0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent)" : undefined,
+                }}
+              >
+                {tab === "privilegios" ? <Shield size={12} /> : <Plus size={12} />}
+                Privilégios
+              </button>
+            )}
           </div>
-          {tab === "usuarios" && (
+          {tab === "usuarios" && can.create && (
             <button
               onClick={() => { setShowCreateModal(true); setError(null); setSuccess(null); }}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:opacity-90 cursor-pointer"
@@ -370,13 +428,20 @@ export default function UsuariosPage() {
         </div>
       )}
 
+      {/* Aba Hierarquia */}
+      {tab === "hierarquia" && (
+        <HierarchyManager onFeedback={handleManagerFeedback} />
+      )}
+
       {/* Aba Privilégios */}
       {tab === "privilegios" && (
         <PrivilegesManager onFeedback={handleManagerFeedback} />
       )}
 
-      {/* Stats */}
+      {/* Aba Usuários */}
       {tab === "usuarios" && (
+      <>
+      {/* Stats */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total", value: users.length, icon: Users, colorVar: "var(--accent-text)" },
@@ -397,10 +462,8 @@ export default function UsuariosPage() {
           </div>
         ))}
       </div>
-      )}
 
       {/* Users Table */}
-      {tab === "usuarios" && (
       <div
         className="rounded-xl overflow-hidden"
         style={{ background: `linear-gradient(135deg, var(--card-bg), var(--background))`, border: "1px solid var(--card-border)" }}
@@ -424,7 +487,7 @@ export default function UsuariosPage() {
                     <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "var(--input-bg)" }}>
                       <Users size={20} style={{ color: "var(--muted)" }} />
                     </div>
-                    <p className="text-sm" style={{ color: "var(--muted)" }}>Nenhum usuário encontrado</p>
+                    <p className="text-sm" style={{ color: "var(--muted)" }}>Nenhum usuário visível para você</p>
                   </div>
                 </td>
               </tr>
@@ -432,10 +495,11 @@ export default function UsuariosPage() {
               users.map((user) => {
                 const isConfirmed = !!user.email_confirmed_at;
                 const isBanned = !!user.banned_until;
-                const userRole = user.role || 'user';
-                const isAdminUser = user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-                const isCurrentUser = user.email?.toLowerCase() === userEmail.toLowerCase();
+                const userRole = user.role || "user";
+                const isMaster = isMasterRow(user);
+                const isCurrentUser = user.email?.toLowerCase() === priv.email.toLowerCase();
                 const displayName = user.username || user.email?.split("@")[0] || "Sem nome";
+                const podeEditarLinha = !isMaster && (can.edit || can.password || can.role || can.block || can.delete);
 
                 return (
                   <tr
@@ -452,8 +516,39 @@ export default function UsuariosPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{displayName}</span>
-                            {isCurrentUser && <span className="text-[9px]" style={{ color: "var(--muted)" }}>(você)</span>}
+                            {editingName?.id === user.id ? (
+                              <form onSubmit={handleRename} className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={editingName.value}
+                                  onChange={(e) => setEditingName({ id: user.id, value: e.target.value })}
+                                  autoFocus
+                                  className="w-32 rounded px-2 py-1 text-xs focus:outline-none"
+                                  style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
+                                />
+                                <button type="submit" className="p-1 cursor-pointer" style={{ color: "var(--accent-text)" }} title="Salvar nome">
+                                  <Save size={12} />
+                                </button>
+                                <button type="button" onClick={() => setEditingName(null)} className="p-1 cursor-pointer" style={{ color: "var(--muted)" }}>
+                                  <X size={12} />
+                                </button>
+                              </form>
+                            ) : (
+                              <>
+                                <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>{displayName}</span>
+                                {isCurrentUser && <span className="text-[9px]" style={{ color: "var(--muted)" }}>(você)</span>}
+                                {can.edit && !isMaster && (
+                                  <button
+                                    onClick={() => setEditingName({ id: user.id, value: user.username || "" })}
+                                    className="p-0.5 rounded cursor-pointer opacity-60 hover:opacity-100 transition-opacity"
+                                    style={{ color: "var(--muted)" }}
+                                    title="Renomear usuário"
+                                  >
+                                    <Pencil size={11} />
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                           <span className="text-[10px]" style={{ color: "var(--muted)" }}>{user.email}</span>
                         </div>
@@ -481,11 +576,11 @@ export default function UsuariosPage() {
                       {user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("pt-BR") : "Nunca"}
                     </td>
                     <td className="px-4 py-3">
-                      {isAdminUser ? (
+                      {isMaster ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "color-mix(in srgb, var(--accent) 15%, transparent)", color: "var(--accent-text)" }}>
                           <Shield size={10} /> Administrador
                         </span>
-                      ) : (
+                      ) : can.role ? (
                         <div className="flex items-center gap-1">
                           {resetPasswordUser === user.id ? (
                             <div className="flex items-center gap-1">
@@ -535,56 +630,66 @@ export default function UsuariosPage() {
                                   </option>
                                 )}
                               </select>
-                              <button
-                                onClick={() => setResetPasswordUser(user.id)}
-                                className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                                style={{ color: "var(--muted)" }}
-                                title="Redefinir senha"
-                              >
-                                <Key size={13} />
-                              </button>
+                              {can.password && (
+                                <button
+                                  onClick={() => setResetPasswordUser(user.id)}
+                                  className="p-1.5 rounded-lg transition-colors cursor-pointer"
+                                  style={{ color: "var(--muted)" }}
+                                  title="Redefinir senha"
+                                >
+                                  <Key size={13} />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>
+                      ) : (
+                        <span className="text-[10px]" style={{ color: "var(--muted)" }}>
+                          {userRole === "user" ? "Usuário" : (customPrivileges.find((p) => p.slug === userRole)?.name ?? userRole)}
+                        </span>
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {!isAdminUser && (
+                      {podeEditarLinha && (
                         <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleToggleActive(user.id, isBanned)}
-                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${isBanned ? "" : ""}`}
-                            style={{ color: isBanned ? "var(--success)" : "var(--muted)" }}
-                            title={isBanned ? "Reativar" : "Desativar"}
-                          >
-                            {isBanned ? <RotateCcw size={13} /> : <Lock size={13} />}
-                          </button>
-                          {deleteConfirm === user.id ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleDeleteUser(user.id, user.email)}
-                                className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
-                                style={{ color: "var(--danger)" }}
-                              >
-                                Sim
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
-                                style={{ color: "var(--muted)" }}
-                              >
-                                Não
-                              </button>
-                            </div>
-                          ) : (
+                          {can.block && (
                             <button
-                              onClick={() => setDeleteConfirm(user.id)}
-                              className="p-1.5 rounded-lg transition-colors cursor-pointer"
-                              style={{ color: "var(--muted)" }}
-                              title="Excluir permanentemente"
+                              onClick={() => handleToggleActive(user.id, isBanned)}
+                              className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--input-bg)]"
+                              style={{ color: isBanned ? "var(--success)" : "var(--muted)" }}
+                              title={isBanned ? "Reativar" : "Desativar"}
                             >
-                              <Trash2 size={13} />
+                              {isBanned ? <RotateCcw size={13} /> : <Lock size={13} />}
                             </button>
+                          )}
+                          {can.delete && (
+                            deleteConfirm === user.id ? (
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleDeleteUser(user.id, user.email)}
+                                  className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
+                                  style={{ color: "var(--danger)" }}
+                                >
+                                  Sim
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(null)}
+                                  className="text-[10px] px-2 py-1 rounded transition-colors cursor-pointer"
+                                  style={{ color: "var(--muted)" }}
+                                >
+                                  Não
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirm(user.id)}
+                                className="p-1.5 rounded-lg transition-colors cursor-pointer hover:bg-[var(--input-bg)] hover:text-[var(--danger)]"
+                                style={{ color: "var(--muted)" }}
+                                title="Excluir permanentemente"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )
                           )}
                         </div>
                       )}
@@ -596,6 +701,7 @@ export default function UsuariosPage() {
           </tbody>
         </table>
       </div>
+      </>
       )}
 
       {/* Create User Modal */}
@@ -628,7 +734,10 @@ export default function UsuariosPage() {
                     style={{ background: "var(--input-bg)", border: "1px solid var(--input-border)", color: "var(--foreground)" }}
                   />
                 </div>
-                <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>Nome exibido no sistema. Se vazio, usa o prefixo do email.</p>
+                <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>
+                  Nome exibido no sistema. Se vazio, usa o prefixo do email.
+                  {!priv.actingAsAdmin && " O novo usuário entrará na sua hierarquia."}
+                </p>
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>Email</label>

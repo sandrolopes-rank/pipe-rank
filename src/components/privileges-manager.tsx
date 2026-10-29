@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import {
   Shield,
   ShieldCheck,
@@ -16,17 +17,21 @@ import {
   MousePointerClick,
   Globe,
   UserCheck,
+  Network,
   LayoutGrid,
 } from "lucide-react";
 import {
   ACCESS_OPTIONS,
   PAGES,
+  RANK_OPTIONS,
+  SCOPE_OPTIONS,
   blankConfig,
   normalizeConfig,
   type PageAccess,
   type PageKey,
   type Privilege,
   type PrivilegeConfig,
+  type PrivilegeRank,
 } from "@/lib/privileges";
 import { invalidatePrivilegesCache } from "@/lib/use-privileges";
 
@@ -60,14 +65,22 @@ export function PrivilegesManager({
   const [editing, setEditing] = useState<Privilege | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [rank, setRank] = useState<PrivilegeRank>("colaborador");
   const [config, setConfig] = useState<PrivilegeConfig>(blankConfig());
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const supabase = createClient();
+
+  const authHeaders = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    return { Authorization: `Bearer ${data.session?.access_token ?? ""}` };
+  }, [supabase]);
+
   const fetchPrivileges = useCallback(async () => {
     try {
-      const res = await fetch("/api/privileges");
+      const res = await fetch("/api/privileges", { headers: await authHeaders() });
       const data = await res.json();
       if (!res.ok) {
         onFeedback("error", `Erro ao carregar privilégios: ${data.error || "Erro desconhecido"}`);
@@ -79,7 +92,7 @@ export function PrivilegesManager({
     } finally {
       setLoading(false);
     }
-  }, [onFeedback]);
+  }, [onFeedback, authHeaders, supabase]);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -91,6 +104,7 @@ export function PrivilegesManager({
     setEditing(null);
     setName("");
     setDescription("");
+    setRank("colaborador");
     setConfig(blankConfig());
     setModalOpen(true);
   }
@@ -99,6 +113,7 @@ export function PrivilegesManager({
     setEditing(p);
     setName(p.name);
     setDescription(p.description ?? "");
+    setRank(p.rank || "colaborador");
     setConfig(normalizeConfig(p.config));
     setModalOpen(true);
   }
@@ -112,7 +127,7 @@ export function PrivilegesManager({
     }));
   }
 
-  function setPageScope(page: PageKey, scope: "all" | "own") {
+  function setPageScope(page: PageKey, scope: "all" | "hierarchy" | "own") {
     setConfig((prev) => ({
       pages: {
         ...prev.pages,
@@ -150,8 +165,8 @@ export function PrivilegesManager({
         isEdit ? `/api/privileges/${editing!.id}` : "/api/privileges",
         {
           method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: name.trim(), description, config }),
+          headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+          body: JSON.stringify({ name: name.trim(), description, rank, config }),
         }
       );
       const data = await res.json();
@@ -177,7 +192,10 @@ export function PrivilegesManager({
   async function handleDelete(p: Privilege) {
     setDeleting(true);
     try {
-      const res = await fetch(`/api/privileges/${p.id}`, { method: "DELETE" });
+      const res = await fetch(`/api/privileges/${p.id}`, {
+        method: "DELETE",
+        headers: await authHeaders(),
+      });
       const data = await res.json();
       if (!res.ok) {
         onFeedback("error", data.error || "Erro ao excluir privilégio.");
@@ -350,6 +368,36 @@ export function PrivilegesManager({
                   </div>
                 </div>
 
+                {/* Nível hierárquico */}
+                <div>
+                  <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--muted)" }}>Nível hierárquico</label>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {RANK_OPTIONS.map((opt) => {
+                      const active = rank === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setRank(opt.value)}
+                          className={`px-3 py-1.5 text-[11px] font-medium rounded-lg transition-all cursor-pointer ${active ? "hover:opacity-90" : "hover:bg-[var(--nav-active-bg)] hover:text-[var(--foreground)]"}`}
+                          style={{
+                            background: active
+                              ? `linear-gradient(135deg, var(--accent-gradient-from), var(--accent-gradient-to))`
+                              : "transparent",
+                            color: active ? "#ffffff" : "var(--muted)",
+                            border: `1px solid ${active ? "transparent" : "var(--input-border)"}`,
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] mt-1" style={{ color: "var(--muted)" }}>
+                    Líder e Gerente podem receber subordinados (hierarquia); subordinados só podem ter nível inferior ao seu.
+                  </p>
+                </div>
+
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <LayoutGrid size={12} style={{ color: "var(--accent-text)" }} />
@@ -412,28 +460,27 @@ export function PrivilegesManager({
                               {/* Escopo de dados */}
                               <div className="flex items-center gap-4 flex-wrap">
                                 <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--muted)" }}>Dados</span>
-                                <label className="flex items-center gap-1.5 cursor-pointer rounded-lg px-1.5 py-1 transition-all hover:bg-[var(--input-bg)]">
-                                  <input
-                                    type="radio"
-                                    name={`scope-${page.key}`}
-                                    checked={rule.scope === "all"}
-                                    onChange={() => setPageScope(page.key, "all")}
-                                    style={{ accentColor: "var(--accent)" }}
-                                  />
-                                  <Globe size={11} style={{ color: "var(--muted)" }} />
-                                  <span className="text-[11px] font-medium" style={{ color: rule.scope === "all" ? "var(--accent-text)" : "var(--foreground)" }}>Ver tudo (geral)</span>
-                                </label>
-                                <label className="flex items-center gap-1.5 cursor-pointer rounded-lg px-1.5 py-1 transition-all hover:bg-[var(--input-bg)]">
-                                  <input
-                                    type="radio"
-                                    name={`scope-${page.key}`}
-                                    checked={rule.scope === "own"}
-                                    onChange={() => setPageScope(page.key, "own")}
-                                    style={{ accentColor: "var(--accent)" }}
-                                  />
-                                  <UserCheck size={11} style={{ color: "var(--muted)" }} />
-                                  <span className="text-[11px] font-medium" style={{ color: rule.scope === "own" ? "var(--accent-text)" : "var(--foreground)" }}>Somente dados atribuídos</span>
-                                </label>
+                                {SCOPE_OPTIONS.map((opt) => {
+                                  const active = rule.scope === opt.value;
+                                  const Icon = opt.value === "all" ? Globe : opt.value === "hierarchy" ? Network : UserCheck;
+                                  return (
+                                    <label
+                                      key={opt.value}
+                                      className="flex items-center gap-1.5 cursor-pointer rounded-lg px-1.5 py-1 transition-all hover:bg-[var(--input-bg)]"
+                                      title={opt.value === "hierarchy" ? "Dados do próprio usuário + de toda a sua equipe (todas as camadas)" : undefined}
+                                    >
+                                      <input
+                                        type="radio"
+                                        name={`scope-${page.key}`}
+                                        checked={active}
+                                        onChange={() => setPageScope(page.key, opt.value)}
+                                        style={{ accentColor: "var(--accent)" }}
+                                      />
+                                      <Icon size={11} style={{ color: "var(--muted)" }} />
+                                      <span className="text-[11px] font-medium" style={{ color: active ? "var(--accent-text)" : "var(--foreground)" }}>{opt.label}</span>
+                                    </label>
+                                  );
+                                })}
                               </div>
 
                               {/* Funções granulares da página */}

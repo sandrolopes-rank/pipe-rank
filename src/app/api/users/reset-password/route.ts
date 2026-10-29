@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getCaller, unauthorized } from "@/lib/api-auth";
 
 export async function PATCH(request: Request) {
+  // Somente admin: líderes redefinem senhas via RPC reset_password_scoped
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.isAdmin) return unauthorized("Apenas administradores redefinem senhas por aqui");
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 

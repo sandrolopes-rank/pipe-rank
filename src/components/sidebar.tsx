@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
+import { ActingModeSwitcher } from "@/components/acting-mode-switcher";
 import {
   LayoutDashboard,
   LifeBuoy,
@@ -10,6 +11,7 @@ import {
   Briefcase,
   Bell,
   BarChart3,
+  PieChart,
   Users,
   Sparkles,
   LogOut,
@@ -43,6 +45,13 @@ const navItems = [
   { label: "Overview", href: "/overview", icon: LayoutDashboard },
 ];
 
+// Página Gerencial: visível somente para Admin (acima de Overview).
+// Não entra em navItems (fallback de não-admin durante a resolução de privilégios).
+const adminMainItems = [
+  { label: "Gerencial", href: "/gerencial", icon: PieChart },
+  ...navItems,
+];
+
 // Somente admin navega nestas paginas (por enquanto)
 const adminNavItems = [
   { label: "Recupera", href: "/recupera", icon: LifeBuoy },
@@ -70,6 +79,7 @@ const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 // Ícone de cada página do registry de privilégios; páginas auto-detectadas
 // sem ícone mapeado usam LayoutGrid como fallback
 const PAGE_ICONS: Partial<Record<PageKey, LucideIcon>> = {
+  gerencial: PieChart,
   overview: LayoutDashboard,
   elephan: Sparkles,
   recupera: LifeBuoy,
@@ -100,9 +110,12 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
   const settingsRef = useRef<HTMLDivElement>(null);
   const priv = usePrivileges();
 
-  const isAdmin =
+  const isMaster =
     priv.isAdmin || userEmail?.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-  // Alertas da Elephan no sino: admin OU privilégio com a função liberada
+  // Modo de atuação: master transita entre Admin (acesso pleno) e Líder
+  // (age com o privilégio de nível Líder e a hierarquia dele)
+  const isAdmin = isMaster && priv.mode === "admin";
+
   const canElephanAlerts = isAdmin || priv.hasFeature("elephan", "alertas");
   // Notificações já abertas individualmente (a bolinha amarela some ao clicar)
   const [readMap, setReadMap] = useState<Record<string, string>>({});
@@ -633,7 +646,7 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
             (p) => !priv.canOpen(p.key) && priv.access(p.key) === "disabled"
           );
           const mainItems = isAdmin
-            ? navItems.concat(adminNavItems)
+            ? adminMainItems.concat(adminNavItems)
             : resolved && openPages.length > 0
               ? openPages.map((p) => ({ label: p.label, href: p.href, icon: pageIcon(p.key) }))
               : navItems;
@@ -752,6 +765,15 @@ export function Sidebar({ userEmail: propUserEmail, activeCount }: { userEmail?:
 
       {/* User info + Settings */}
       <div className="px-3 py-3" style={{ borderTop: "1px solid var(--sidebar-border)" }} ref={settingsRef}>
+        {/* Modo de atuação (exclusivo do master): Admin pleno ou assumir um
+            privilégio — no modo assumido vale EXATAMENTE o que ele libera */}
+        {isMaster && (
+          <ActingModeSwitcher
+            mode={priv.mode}
+            choices={priv.actingChoices}
+            onSetMode={priv.setMode}
+          />
+        )}
         <div className="relative">
           {/* User button - clickable to open settings */}
           <button

@@ -5,7 +5,11 @@ import {
   normalizeConfig,
   slugify,
   type Privilege,
+  type PrivilegeRank,
 } from "@/lib/privileges";
+import { getCaller, unauthorized, forbidden } from "@/lib/api-auth";
+
+const VALID_RANKS: PrivilegeRank[] = ["lider", "gerente", "colaborador"];
 
 function serviceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,7 +21,11 @@ function serviceClient() {
 }
 
 // GET /api/privileges — lista todos os privilégios (sistema + custom)
-export async function GET() {
+export async function GET(request: Request) {
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.canPriv) return forbidden("Seu perfil não permite gerenciar privilégios");
+
   const supabase = serviceClient();
   if (!supabase) {
     return NextResponse.json(
@@ -47,6 +55,10 @@ export async function GET() {
 
 // POST /api/privileges — cria um privilégio custom
 export async function POST(request: Request) {
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.canPriv) return forbidden("Seu perfil não permite criar privilégios");
+
   const supabase = serviceClient();
   if (!supabase) {
     return NextResponse.json(
@@ -56,7 +68,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { name, description, config } = await request.json();
+    const { name, description, config, rank } = await request.json();
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json(
@@ -64,6 +76,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    const nivel: PrivilegeRank =
+      rank && VALID_RANKS.includes(rank as PrivilegeRank) ? (rank as PrivilegeRank) : "colaborador";
 
     const slug = slugify(name);
     if (!slug) {
@@ -98,6 +113,7 @@ export async function POST(request: Request) {
         name: name.trim(),
         description: typeof description === "string" ? description.trim() || null : null,
         is_system: false,
+        rank: nivel,
         config: normalizeConfig(config),
       })
       .select()

@@ -25,8 +25,24 @@ export const ADMIN_EMAIL = "sandro.lopes@rankmyapp.com.br";
 //   hidden   → não aparece na sidebar; rota bloqueada
 export type PageAccess = "full" | "readonly" | "disabled" | "hidden";
 
-// Escopo de dados: o privilégio vê tudo ou apenas os dados atribuídos a ele
-export type DataScope = "all" | "own";
+// Escopo de dados: geral, hierarquia (self + descendentes na árvore da
+// equipe) ou somente os dados atribuídos ao próprio usuário
+export type DataScope = "all" | "hierarchy" | "own";
+
+// Nível hierárquico do privilégio (define quem pode ser subordinado de quem)
+export type PrivilegeRank = "admin" | "lider" | "gerente" | "colaborador";
+
+export const RANK_OPTIONS: { value: PrivilegeRank; label: string }[] = [
+  { value: "lider", label: "Líder (gerencia equipe)" },
+  { value: "gerente", label: "Gerente (subordinado de líder)" },
+  { value: "colaborador", label: "Colaborador (sem equipe)" },
+];
+
+export const SCOPE_OPTIONS: { value: DataScope; label: string }[] = [
+  { value: "all", label: "Ver tudo (geral)" },
+  { value: "hierarchy", label: "Ver sua hierarquia (equipe)" },
+  { value: "own", label: "Somente dados atribuídos" },
+];
 
 // Chave de página: string (não union fechada) para que páginas novas
 // geradas automaticamente funcionem sem alterar tipos em todo o app.
@@ -62,6 +78,7 @@ export interface Privilege {
   name: string;
   description: string | null;
   is_system: boolean;
+  rank: PrivilegeRank;
   config: PrivilegeConfig;
   created_at: string;
   updated_at: string;
@@ -72,6 +89,13 @@ export interface Privilege {
 // exclusivo do admin por segurança (cria usuários e privilégios),
 // por isso não faz parte do registry configurável.
 const PAGES_MANUAL: PageDef[] = [
+  {
+    key: "gerencial",
+    label: "Gerencial",
+    href: "/gerencial",
+    description: "Visão gerencial do pipeline (em construção; visível somente para Admin)",
+    features: [],
+  },
   {
     key: "overview",
     label: "Overview",
@@ -129,6 +153,22 @@ const PAGES_MANUAL: PageDef[] = [
     href: "/planos",
     description: "Anotações e planos futuros do time",
     features: [],
+  },
+  {
+    key: "usuarios",
+    label: "Usuários",
+    href: "/usuarios",
+    description: "Gestão de usuários, hierarquias e privilégios (com funções controláveis por privilégio)",
+    features: [
+      { key: "administrar_privilegios", label: "Administrar privilégios", description: "Criar, editar e excluir privilégios do sistema" },
+      { key: "cadastrar_usuarios", label: "Cadastrar novos usuários", description: "Criar contas; quem cadastra (não-admin) torna-se líder do novo usuário" },
+      { key: "editar_usuarios", label: "Editar usuários atuais", description: "Alterar nome e dados exibidos dos usuários" },
+      { key: "alterar_senha", label: "Alterar senha", description: "Redefinir a senha de usuários" },
+      { key: "alterar_privilegio", label: "Alterar privilégio de usuários", description: "Trocar o privilégio atribuído (não-admin: apenas na própria hierarquia e sem promover a Admin/Líder)" },
+      { key: "bloquear_usuarios", label: "Bloquear ou reativar usuários", description: "Desativar e reativar acessos" },
+      { key: "deletar_usuarios", label: "Excluir usuários", description: "Excluir contas permanentemente" },
+      { key: "atribuir_hierarquia", label: "Atribuir hierarquias", description: "Gerenciar a equipe: definir quem fica subordinado a quem (apenas perfis de nível inferior)" },
+    ],
   },
 ];
 
@@ -216,6 +256,15 @@ export function blankConfig(): PrivilegeConfig {
 
 const VALID_ACCESS: PageAccess[] = ["full", "readonly", "disabled", "hidden"];
 
+// Funções sensíveis: quando a página é habilitada num privilégio, estas
+// features nascem DESLIGADAS (o admin marca explicitamente o que pode).
+// Usuários: administrar privilégios, cadastrar, excluir etc. são críticas.
+const SENSITIVE_PAGES = new Set<PageKey>(["usuarios"]);
+
+function defaultFeatureValue(page: PageKey): boolean {
+  return !SENSITIVE_PAGES.has(page);
+}
+
 // Normaliza uma config vinda do banco: preenche páginas/funções ausentes
 // com defaults seguros (página ausente → oculta; função ausente em página
 // acessível → liberada, pois função é refinamento e não portão).
@@ -229,11 +278,13 @@ export function normalizeConfig(raw: unknown): PrivilegeConfig {
     const access: PageAccess = VALID_ACCESS.includes(rule.access as PageAccess)
       ? (rule.access as PageAccess)
       : "hidden";
-    const scope: DataScope = rule.scope === "all" ? "all" : "own";
+    const scope: DataScope = ["all", "hierarchy", "own"].includes(rule.scope as DataScope)
+      ? (rule.scope as DataScope)
+      : "own";
     const features: Record<string, boolean> = {};
     for (const f of page.features) {
       const v = rule.features?.[f.key];
-      features[f.key] = typeof v === "boolean" ? v : true;
+      features[f.key] = typeof v === "boolean" ? v : defaultFeatureValue(page.key);
     }
     base.pages[page.key] = { access, scope, features };
   }

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { normalizeConfig, type Privilege } from "@/lib/privileges";
+import { normalizeConfig, type Privilege, type PrivilegeRank } from "@/lib/privileges";
+import { getCaller, unauthorized, forbidden } from "@/lib/api-auth";
+
+const VALID_RANKS: PrivilegeRank[] = ["lider", "gerente", "colaborador"];
 
 function serviceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,6 +20,10 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.canPriv) return forbidden("Seu perfil não permite gerenciar privilégios");
+
   const supabase = serviceClient();
   if (!supabase) {
     return NextResponse.json(
@@ -56,6 +63,12 @@ export async function PATCH(
     if (typeof body.description === "string") {
       updates.description = body.description.trim() || null;
     }
+    if (typeof body.rank === "string" && VALID_RANKS.includes(body.rank as PrivilegeRank)) {
+      // nível hierárquico: apenas em privilégios custom (sistema fixo)
+      if (!current.is_system) {
+        updates.rank = body.rank as PrivilegeRank;
+      }
+    }
     if (body.config !== undefined) {
       updates.config = normalizeConfig(body.config);
     }
@@ -94,6 +107,10 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const caller = await getCaller(_request);
+  if (!caller) return unauthorized();
+  if (!caller.canPriv) return forbidden("Seu perfil não permite gerenciar privilégios");
+
   const supabase = serviceClient();
   if (!supabase) {
     return NextResponse.json(

@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getCaller, unauthorized } from "@/lib/api-auth";
 
 export async function PATCH(request: Request) {
+  // Somente admin: líderes alteram privilégios via RPC set_user_role_scoped
+  const caller = await getCaller(request);
+  if (!caller) return unauthorized();
+  if (!caller.isAdmin) return unauthorized("Apenas administradores alteram privilégios por aqui");
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
